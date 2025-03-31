@@ -1,7 +1,7 @@
 // index.js
-const fetch = require('node-fetch');
-const { XMLParser } = require('fast-xml-parser');
-const { Client, Databases, Query } = require('node-appwrite');
+import fetch from 'node-fetch';
+import { XMLParser } from 'fast-xml-parser';
+import { Client, Databases, Query } from 'node-appwrite';
 
 // RSS 목록 정의
 const RSS_FEEDS = [
