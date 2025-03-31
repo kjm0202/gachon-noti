@@ -76,8 +76,9 @@ async function main() {
         ]);
 
         if (existing.total > 0) {
-          // 이미 존재 -> 스킵
-          continue;
+          // 이미 존재 -> 여기서 나머지 아이템을 검사하지 않고 다음 게시판으로 넘어감
+          console.log(`[OLD POST] boardId=${boardId}, title=${title.slice(0, 30)}. Skipping the rest of this feed...`);
+          break;
         }
 
         // 새 게시물 -> Appwrite에 저장
