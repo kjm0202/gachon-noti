@@ -3,11 +3,12 @@ name: RSS Crawler
 on:
   schedule:
     - cron: "*/15 * * * *"  # 15분 간격
-  workflow_dispatch:        # 수동 실행도 허용 (원하면 남겨둠)
+  workflow_dispatch:        # 수동 실행도 허용
 
 jobs:
   rss-crawl:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -17,11 +18,20 @@ jobs:
         with:
           node-version: 18
 
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.npm
+            node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run crawler script
-        # GitHub Secrets를 환경변수로 주입하여 안전하게 사용
         env:
           APPWRITE_ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
           APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
