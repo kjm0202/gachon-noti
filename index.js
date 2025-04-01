@@ -2,6 +2,7 @@
 import fetch from 'node-fetch';
 import { XMLParser } from 'fast-xml-parser';
 import { Client, Databases, Query } from 'node-appwrite';
+import admin from 'firebase-admin';
 
 // RSS 목록 정의
 const RSS_FEEDS = [
@@ -16,16 +17,35 @@ const RSS_FEEDS = [
 ];
 
 async function main() {
-  // 1) 환경변수에서 Appwrite 인증 정보 받아옴
+  // 1) 환경변수에서 Appwrite 및 Firebase 인증 정보 받아옴
   const APPWRITE_ENDPOINT = process.env.APPWRITE_ENDPOINT;
   const APPWRITE_API_KEY = process.env.APPWRITE_API_KEY;
   const APPWRITE_PROJECT_ID = process.env.APPWRITE_PROJECT_ID;
   const DATABASE_ID = process.env.APPWRITE_DATABASE_ID;
   const POSTS_COLLECTION_ID = process.env.APPWRITE_POSTS_COLLECTION_ID;
+  const SUBSCRIPTIONS_COLLECTION_ID = process.env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID;
 
+  // Firebase Admin SDK 초기화
+  const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
+  const FIREBASE_CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL;
+  const FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
+  
   if (!APPWRITE_ENDPOINT || !APPWRITE_API_KEY || !APPWRITE_PROJECT_ID || !DATABASE_ID || !POSTS_COLLECTION_ID) {
     throw new Error('Missing Appwrite environment variables');
   }
+
+  if (!FIREBASE_PROJECT_ID || !FIREBASE_CLIENT_EMAIL || !FIREBASE_PRIVATE_KEY) {
+    throw new Error('Missing Firebase environment variables');
+  }
+
+  // Firebase 초기화
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: FIREBASE_PROJECT_ID,
+      clientEmail: FIREBASE_CLIENT_EMAIL,
+      privateKey: FIREBASE_PRIVATE_KEY,
+    }),
+  });
 
   // 2) Appwrite Client 초기화
   const client = new Client()
@@ -82,7 +102,7 @@ async function main() {
         }
 
         // 새 게시물 -> Appwrite에 저장
-        await databases.createDocument(DATABASE_ID, POSTS_COLLECTION_ID, 'unique()', {
+        const newPost = await databases.createDocument(DATABASE_ID, POSTS_COLLECTION_ID, 'unique()', {
           boardId,
           title,
           link,
@@ -93,7 +113,9 @@ async function main() {
         });
 
         console.log(`[NEW POST] boardId=${boardId}, title=${title.slice(0, 30)}`);
-        // 알림 로직이 있다면 여기서 FCM 발송 or 큐잉
+        
+        // 해당 게시판을 구독한 사용자들에게 알림 발송
+        await sendPushNotifications(databases, DATABASE_ID, SUBSCRIPTIONS_COLLECTION_ID, boardId, title, link);
       }
     } catch (err) {
       console.error(`Failed to parse feed ${boardId}:`, err);
@@ -124,6 +146,101 @@ function parsePubDate(dateStr) {
   const replaced = dateStr.replace(/\./g, '-'); // 2025-03-12 15:53:29
   const isoLike = replaced.replace(' ', 'T');  // 2025-03-12T15:53:29
   return isoLike;
+}
+
+/**
+ * 사용자들에게 푸시 알림 발송
+ */
+async function sendPushNotifications(databases, databaseId, subscriptionsCollectionId, boardId, title, link) {
+  try {
+    // 해당 게시판을 구독한 사용자 목록 조회
+    const subscribers = await databases.listDocuments(databaseId, subscriptionsCollectionId, [
+      Query.equal('boards', [boardId]),  // 사용자가 구독한 게시판 배열에 현재 게시판이 포함된 경우
+    ]);
+
+    if (subscribers.total === 0) {
+      console.log(`No subscribers for boardId=${boardId}`);
+      return;
+    }
+
+    console.log(`Found ${subscribers.total} subscribers for boardId=${boardId}`);
+
+    // 각 구독자에게 알림 발송
+    for (const subscriber of subscribers.documents) {
+      const userId = subscriber.userId;
+      
+      // user_devices 컬렉션에서 해당 사용자의 디바이스 토큰 조회
+      const userDevices = await databases.listDocuments(databaseId, process.env.APPWRITE_USER_DEVICES_COLLECTION_ID, [
+        Query.equal('userId', userId),
+      ]);
+      
+      if (userDevices.total === 0) {
+        console.log(`No devices found for user ${userId}`);
+        continue;
+      }
+      
+      console.log(`Found ${userDevices.total} devices for user ${userId}`);
+      
+      // 각 디바이스 토큰으로 푸시 알림 발송
+      const notifications = userDevices.documents.map(async (device) => {
+        const fcmToken = device.fcmToken;
+        if (!fcmToken) {
+          console.log(`Device ${device.$id} has no FCM token`);
+          return;
+        }
+
+        try {
+          // FCM 메시지 구성
+          const message = {
+            notification: {
+              title: `[${getBoardName(boardId)}] 새 공지사항`,
+              body: title,
+            },
+            data: {
+              boardId: boardId,
+              postLink: link,
+              createdAt: new Date().toISOString(),
+            },
+            token: fcmToken,
+          };
+
+          // FCM으로 메시지 전송
+          const response = await admin.messaging().send(message);
+          console.log(`Successfully sent message to device ${device.$id} for user ${userId}:`, response);
+        } catch (error) {
+          console.error(`Error sending message to device ${device.$id} for user ${userId}:`, error);
+          
+          // 토큰이 유효하지 않거나 만료된 경우
+          if (error.code === 'messaging/invalid-registration-token' || 
+              error.code === 'messaging/registration-token-not-registered') {
+            // 토큰 무효화를 위해 해당 디바이스 문서 삭제
+            console.log(`Removing invalid token for device ${device.$id}`);
+            await databases.deleteDocument(databaseId, process.env.APPWRITE_USER_DEVICES_COLLECTION_ID, device.$id);
+          }
+        }
+      });
+
+      await Promise.all(notifications);
+    }
+  } catch (error) {
+    console.error('Error sending push notifications:', error);
+  }
+}
+
+/** 게시판 ID에서 읽기 쉬운 이름으로 변환 */
+function getBoardName(boardId) {
+  const boardNames = {
+    'bachelor': '학사',
+    'scholarship': '장학',
+    'student': '학생',
+    'job': '취업',
+    'extracurricular': '비교과',
+    'other': '기타',
+    'dormGlobal': '글로벌 기숙사',
+    'dormMedical': '의학 기숙사',
+  };
+  
+  return boardNames[boardId] || boardId;
 }
 
 main().catch((err) => {

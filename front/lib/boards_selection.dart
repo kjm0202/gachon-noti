@@ -16,6 +16,7 @@ class _BoardSelectionPageState extends State<BoardSelectionPage> {
   late Databases _databases;
   String? _userId; // nullable로 변경
   bool _loading = true; // 로딩 상태 추가
+  String? _subscriptionId;
 
   final List<String> _allBoards = [
     'bachelor',
@@ -43,53 +44,7 @@ class _BoardSelectionPageState extends State<BoardSelectionPage> {
       _userId = user.$id;
       print('Current user ID: $_userId'); // 디버깅용 로그 추가
 
-      try {
-        print('Fetching subscriptions for user: $_userId'); // 디버깅용 로그 추가
-        final subscriptions = await _databases.listDocuments(
-          databaseId: API.databaseId,
-          collectionId: API.collectionsSubscriptionsId,
-          queries: [Query.equal('userId', _userId!)],
-        );
-
-        print(
-          'Found ${subscriptions.documents.length} subscriptions',
-        ); // 디버깅용 로그 추가
-
-        if (subscriptions.documents.isNotEmpty) {
-          final doc = subscriptions.documents.first;
-          print('Subscription document ID: ${doc.$id}'); // 디버깅용 로그 추가
-          final boardsField = doc.data['boards'];
-          print('Boards field: $boardsField'); // 디버깅용 로그 추가
-
-          if (mounted) {
-            setState(() {
-              _subscribedBoards =
-                  boardsField != null ? List<String>.from(boardsField) : [];
-              _loading = false;
-            });
-          }
-        } else {
-          print('No subscription found, creating new...'); // 디버깅용 로그 추가
-          await _createEmptySubscription();
-        }
-      } catch (e) {
-        print('Error loading subscription: $e');
-        if (e.toString().contains('document not found')) {
-          await _createEmptySubscription();
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('구독 정보를 불러오는데 실패했습니다.'),
-                action: SnackBarAction(
-                  label: '다시 시도',
-                  onPressed: () => _initUserAndLoadSubscription(),
-                ),
-              ),
-            );
-          }
-        }
-      }
+      await _loadUserSubscription();
     } catch (e) {
       print('Error getting user: $e');
       if (mounted) {
@@ -105,6 +60,65 @@ class _BoardSelectionPageState extends State<BoardSelectionPage> {
             ),
           ),
         );
+      }
+    }
+  }
+
+  Future<void> _loadUserSubscription() async {
+    if (_userId == null) return;
+
+    try {
+      print('Fetching subscriptions for user: $_userId'); // 디버깅용 로그 추가
+      final subscriptions = await _databases.listDocuments(
+        databaseId: API.databaseId,
+        collectionId: API.collectionsSubscriptionsId,
+        queries: [Query.equal('userId', _userId!)],
+      );
+
+      print(
+        'Found ${subscriptions.documents.length} subscriptions',
+      ); // 디버깅용 로그 추가
+
+      if (subscriptions.documents.isNotEmpty) {
+        final doc = subscriptions.documents.first;
+        _subscriptionId = doc.$id;
+        print('Subscription document ID: ${doc.$id}'); // 디버깅용 로그 추가
+        final boardsField = doc.data['boards'];
+        print('Boards field: $boardsField'); // 디버깅용 로그 추가
+
+        if (mounted) {
+          setState(() {
+            _subscribedBoards =
+                boardsField != null ? List<String>.from(boardsField) : [];
+            _loading = false;
+          });
+        }
+      } else {
+        print('No subscription found, creating new...'); // 디버깅용 로그 추가
+        await _createEmptySubscription();
+      }
+    } catch (e) {
+      print('Error loading subscription: $e');
+      if (e.toString().contains('document not found')) {
+        await _createEmptySubscription();
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('구독 정보를 불러오는데 실패했습니다.'),
+              action: SnackBarAction(
+                label: '다시 시도',
+                onPressed: () => _loadUserSubscription(),
+              ),
+            ),
+          );
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
       }
     }
   }
@@ -125,6 +139,7 @@ class _BoardSelectionPageState extends State<BoardSelectionPage> {
         data: data,
       );
 
+      _subscriptionId = result.$id;
       print('Created subscription document: ${result.$id}'); // 디버깅용 로그 추가
 
       if (mounted) {
@@ -172,35 +187,23 @@ class _BoardSelectionPageState extends State<BoardSelectionPage> {
     });
 
     try {
-      // 현재 사용자의 구독 문서 찾기
-      final subscriptions = await _databases.listDocuments(
-        databaseId: API.databaseId,
-        collectionId: API.collectionsSubscriptionsId,
-        queries: [Query.equal('userId', _userId!)],
-      );
-
-      if (subscriptions.documents.isEmpty) {
-        print('No subscription found, creating new one...');
+      if (_subscriptionId == null) {
+        // 구독 문서가 없으면 생성 후 다시 시도
         await _createEmptySubscription();
-        // 새로 생성 후 다시 토글 시도
-        _toggleBoard(boardId);
+        await _toggleBoard(boardId);
         return;
       }
 
-      final doc = subscriptions.documents.first;
       final now = DateTime.now().toIso8601String();
 
-      print('Updating subscription ${doc.$id} with boards: $newList');
+      print('Updating subscription $_subscriptionId with boards: $newList');
 
       // 문서 업데이트
       await _databases.updateDocument(
         databaseId: API.databaseId,
         collectionId: API.collectionsSubscriptionsId,
-        documentId: doc.$id,
-        data: {
-          'boards': newList,
-          'lastUpdate': now, // updatedAt 대신 lastUpdate 사용
-        },
+        documentId: _subscriptionId!,
+        data: {'boards': newList, 'lastUpdate': now},
       );
 
       print('Successfully updated subscription');
