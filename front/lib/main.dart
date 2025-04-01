@@ -8,19 +8,13 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:front/const.dart';
 import 'package:front/boards_selection.dart';
 import 'package:front/posts_page.dart';
+import 'package:front/firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Firebase 초기화 - FCM용 최소 설정
-  await Firebase.initializeApp(
-    options: const FirebaseOptions(
-      apiKey: 'AIzaSyBVQHNNbqHXEZF6Qf3ZxOz-qxUvXrIUXQE', // FCM용 웹 API 키
-      projectId: 'gachon-notice',
-      messagingSenderId: '1234567890',
-      appId: '1:1234567890:web:abcdef1234567890',
-    ),
-  );
+  // Firebase 초기화
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   final client = Client().setEndpoint(API.apiUrl).setProject(API.projectId);
 
@@ -212,8 +206,86 @@ class _HomePageState extends State<HomePage> {
           await _saveFcmTokenToServer(_userId!, newToken);
         }
       });
+
+      // 앱이 열려 있을 때 수신된 메시지 처리
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        print('Got a message whilst in the foreground!');
+        print('Message data: ${message.data}');
+
+        if (message.notification != null) {
+          print(
+            'Message also contained a notification: ${message.notification}',
+          );
+          // 여기서 인앱 알림을 표시할 수 있습니다.
+          _showInAppNotification(message);
+        }
+      });
+
+      // 앱이 백그라운드에 있는 상태에서 알림 클릭으로 열렸을 때
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        print('A new onMessageOpenedApp event was published!');
+        print('Message data: ${message.data}');
+
+        _handleNotificationClick(message);
+      });
+
+      // 앱이 종료된 상태에서 알림 클릭으로 열렸을 때의 초기 메시지 확인
+      FirebaseMessaging.instance.getInitialMessage().then((
+        RemoteMessage? message,
+      ) {
+        if (message != null) {
+          print('App opened from terminated state via notification!');
+          print('Initial message: ${message.data}');
+
+          _handleNotificationClick(message);
+        }
+      });
     } catch (e) {
       print('FCM initialization error: $e');
+    }
+  }
+
+  void _showInAppNotification(RemoteMessage message) {
+    if (!mounted) return;
+
+    final notification = message.notification;
+    final data = message.data;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(notification?.title ?? '새 알림'),
+        action: SnackBarAction(
+          label: '보기',
+          onPressed: () {
+            _handleNotificationClick(message);
+          },
+        ),
+        duration: Duration(seconds: 5),
+      ),
+    );
+  }
+
+  void _handleNotificationClick(RemoteMessage message) {
+    final data = message.data;
+
+    // 메시지 데이터에 'boardId'와 'link' 필드가 있는지 확인
+    final String? boardId = data['boardId'];
+    final String? link = data['link'];
+
+    if (link != null && link.isNotEmpty) {
+      // 링크가 있으면 외부 브라우저로 열기
+      html.window.open(link, '_blank');
+    } else if (boardId != null && boardId.isNotEmpty) {
+      // boardId가 있으면 해당 게시판의 전체 게시물 페이지로 이동
+      setState(() {
+        _currentIndex = 1; // 전체 게시물 탭으로 전환
+      });
+      // 추가 구현이 필요한 경우: 특정 게시판의 게시물만 보여주기
+    } else {
+      // 기본 동작: 전체 게시물 페이지로 이동
+      setState(() {
+        _currentIndex = 1;
+      });
     }
   }
 
