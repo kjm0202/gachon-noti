@@ -24,6 +24,7 @@ async function main() {
   const DATABASE_ID = process.env.APPWRITE_DATABASE_ID;
   const POSTS_COLLECTION_ID = process.env.APPWRITE_POSTS_COLLECTION_ID;
   const SUBSCRIPTIONS_COLLECTION_ID = process.env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID;
+  const USER_DEVICES_COLLECTION_ID = process.env.APPWRITE_USER_DEVICES_COLLECTION_ID;
 
   // Firebase Admin SDK 초기화
   const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
@@ -36,6 +37,10 @@ async function main() {
 
   if (!FIREBASE_PROJECT_ID || !FIREBASE_CLIENT_EMAIL || !FIREBASE_PRIVATE_KEY) {
     throw new Error('Missing Firebase environment variables');
+  }
+
+  if (!USER_DEVICES_COLLECTION_ID) {
+    throw new Error('Missing APPWRITE_USER_DEVICES_COLLECTION_ID environment variable');
   }
 
   // Firebase 초기화
@@ -115,7 +120,7 @@ async function main() {
         console.log(`[NEW POST] boardId=${boardId}, title=${title.slice(0, 30)}`);
         
         // 해당 게시판을 구독한 사용자들에게 알림 발송
-        await sendPushNotifications(databases, DATABASE_ID, SUBSCRIPTIONS_COLLECTION_ID, boardId, title, link);
+        await sendPushNotifications(databases, DATABASE_ID, SUBSCRIPTIONS_COLLECTION_ID, USER_DEVICES_COLLECTION_ID, boardId, title, link);
       }
     } catch (err) {
       console.error(`Failed to parse feed ${boardId}:`, err);
@@ -151,7 +156,7 @@ function parsePubDate(dateStr) {
 /**
  * 사용자들에게 푸시 알림 발송
  */
-async function sendPushNotifications(databases, databaseId, subscriptionsCollectionId, boardId, title, link) {
+async function sendPushNotifications(databases, databaseId, subscriptionsCollectionId, userDevicesCollectionId, boardId, title, link) {
   try {
     // 해당 게시판을 구독한 사용자 목록 조회
     const subscribers = await databases.listDocuments(databaseId, subscriptionsCollectionId, [
@@ -170,7 +175,7 @@ async function sendPushNotifications(databases, databaseId, subscriptionsCollect
       const userId = subscriber.userId;
       
       // user_devices 컬렉션에서 해당 사용자의 디바이스 토큰 조회
-      const userDevices = await databases.listDocuments(databaseId, process.env.APPWRITE_USER_DEVICES_COLLECTION_ID, [
+      const userDevices = await databases.listDocuments(databaseId, userDevicesCollectionId, [
         Query.equal('userId', userId),
       ]);
       
@@ -215,7 +220,7 @@ async function sendPushNotifications(databases, databaseId, subscriptionsCollect
               error.code === 'messaging/registration-token-not-registered') {
             // 토큰 무효화를 위해 해당 디바이스 문서 삭제
             console.log(`Removing invalid token for device ${device.$id}`);
-            await databases.deleteDocument(databaseId, process.env.APPWRITE_USER_DEVICES_COLLECTION_ID, device.$id);
+            await databases.deleteDocument(databaseId, userDevicesCollectionId, device.$id);
           }
         }
       });
