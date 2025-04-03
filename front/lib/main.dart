@@ -1,4 +1,4 @@
-import 'dart:html' as html;
+// import 'dart:html' as html;
 import 'package:appwrite/enums.dart';
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
@@ -9,6 +9,7 @@ import 'package:front/const.dart';
 import 'package:front/boards_selection.dart';
 import 'package:front/posts_page.dart';
 import 'package:front/firebase_options.dart';
+import 'package:web/web.dart' as web;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,13 +20,13 @@ void main() async {
   final client = Client().setEndpoint(API.apiUrl).setProject(API.projectId);
 
   // URL에서 세션 콜백 확인
-  final Uri currentUrl = Uri.parse(html.window.location.href);
+  final Uri currentUrl = Uri.parse(web.window.location.href);
   final bool isRedirect = currentUrl.path.contains('auth-callback');
 
   if (isRedirect) {
     // 부모 창으로 메시지 전송 후 현재 창 닫기
-    html.window.opener?.postMessage('login-success', '*');
-    html.window.close();
+    (web.window.opener as dynamic)?.postMessage('login-success', '*');
+    web.window.close();
     return;
   }
 
@@ -72,7 +73,7 @@ class _HomePageState extends State<HomePage> {
     _initFCM();
 
     // URL 파라미터 체크
-    final uri = Uri.parse(html.window.location.href);
+    final uri = Uri.parse(web.window.location.href);
     if (uri.queryParameters.containsKey('success')) {
       _checkCurrentSession(); // 로그인 성공 후 리다이렉트된 경우 세션 체크
     }
@@ -100,7 +101,7 @@ class _HomePageState extends State<HomePage> {
 
     try {
       // 현재 URL을 기반으로 success/failure URL 설정
-      final currentUrl = html.window.location.href;
+      final currentUrl = web.window.location.href;
       final successUrl = currentUrl;
       final failureUrl = currentUrl;
 
@@ -274,7 +275,7 @@ class _HomePageState extends State<HomePage> {
 
     if (link != null && link.isNotEmpty) {
       // 링크가 있으면 외부 브라우저로 열기
-      html.window.open(link, '_blank');
+      web.window.open(link, '_blank');
     } else if (boardId != null && boardId.isNotEmpty) {
       // boardId가 있으면 해당 게시판의 전체 게시물 페이지로 이동
       setState(() {
