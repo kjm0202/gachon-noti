@@ -216,17 +216,15 @@ async function sendPushNotifications(databases, databaseId, subscriptionsCollect
       console.log(`Sending notifications to user ${userId} with ${devices.length} devices`);
       
       try {
-        // 각 사용자의 모든 디바이스에 대한 메시지 배치 생성
+        // 각 디바이스별로 개별 메시지 생성 (sendEach 방식)
         const messages = devices.map(device => ({
-          token: device.token,
-          ...baseMessage
+          notification: baseMessage.notification,
+          data: baseMessage.data,
+          token: device.token
         }));
         
-        // sendEachForMulticast로 배치 메시지 전송
-        const response = await admin.messaging().sendEachForMulticast({
-          tokens: devices.map(d => d.token),
-          ...baseMessage
-        });
+        // sendEach로 메시지 전송 (각 메시지는 완전한 형태여야 함)
+        const response = await admin.messaging().sendEach(messages);
         
         console.log(`Notifications for user ${userId}: ${response.successCount} successes, ${response.failureCount} failures`);
         
