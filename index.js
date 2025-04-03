@@ -149,7 +149,7 @@ function parsePubDate(dateStr) {
 }
 
 /**
- * 사용자들에게 푸시 알림 발송
+ * 사용자들에게 푸시 알림 발송 (Multicast)
  */
 async function sendPushNotifications(databases, databaseId, subscriptionsCollectionId, boardId, title, link) {
   try {
@@ -165,7 +165,11 @@ async function sendPushNotifications(databases, databaseId, subscriptionsCollect
 
     console.log(`Found ${subscribers.total} subscribers for boardId=${boardId}`);
 
-    // 각 구독자에게 알림 발송
+    // 사용자별 디바이스 토큰을 수집
+    // 각 사용자마다 한 번씩만 처리하기 위해 Map으로 관리
+    const userTokensMap = new Map(); // userId -> fcm tokens array
+
+    // 모든 구독자의 디바이스 토큰 수집
     for (const subscriber of subscribers.documents) {
       const userId = subscriber.userId;
       
@@ -181,49 +185,93 @@ async function sendPushNotifications(databases, databaseId, subscriptionsCollect
       
       console.log(`Found ${userDevices.total} devices for user ${userId}`);
       
-      // 각 디바이스 토큰으로 푸시 알림 발송
-      const notifications = userDevices.documents.map(async (device) => {
-        const fcmToken = device.fcmToken;
-        if (!fcmToken) {
-          console.log(`Device ${device.$id} has no FCM token`);
-          return;
-        }
+      // 유효한 토큰만 수집
+      const validTokens = userDevices.documents
+        .filter(device => device.fcmToken)
+        .map(device => ({
+          token: device.fcmToken,
+          deviceId: device.$id
+        }));
+      
+      if (validTokens.length > 0) {
+        userTokensMap.set(userId, validTokens);
+      }
+    }
 
-        try {
-          // FCM 메시지 구성
-          const message = {
-            notification: {
-              title: `[${getBoardName(boardId)}] 새 공지사항`,
-              body: title,
-            },
-            data: {
-              boardId: boardId,
-              postLink: link,
-              createdAt: new Date().toISOString(),
-            },
-            token: fcmToken,
-          };
+    // FCM 메시지 기본 구성
+    const message = {
+      notification: {
+        title: `[${getBoardName(boardId)}] 새 공지사항`,
+        body: title,
+      },
+      data: {
+        boardId: boardId,
+        postLink: link,
+        createdAt: new Date().toISOString(),
+      }
+    };
 
-          // FCM으로 메시지 전송
-          const response = await admin.messaging().send(message);
-          console.log(`Successfully sent message to device ${device.$id} for user ${userId}:`, response);
-        } catch (error) {
-          console.error(`Error sending message to device ${device.$id} for user ${userId}:`, error);
-          
-          // 토큰이 유효하지 않거나 만료된 경우
-          if (error.code === 'messaging/invalid-registration-token' || 
-              error.code === 'messaging/registration-token-not-registered') {
-            // 토큰 무효화를 위해 해당 디바이스 문서 삭제
-            console.log(`Removing invalid token for device ${device.$id}`);
-            await databases.deleteDocument(databaseId, process.env.APPWRITE_USER_DEVICES_COLLECTION_ID, device.$id);
+    // 각 사용자별로 한 번씩만 처리
+    for (const [userId, devices] of userTokensMap.entries()) {
+      console.log(`Sending notifications to user ${userId} with ${devices.length} devices`);
+      
+      // 각 디바이스별 토큰 목록
+      const tokens = devices.map(d => d.token);
+      
+      // 디바이스 ID와 토큰 매핑
+      const tokenToDeviceMap = new Map();
+      devices.forEach(d => tokenToDeviceMap.set(d.token, d.deviceId));
+
+      try {
+        // Multicast 메시지 전송
+        const response = await admin.messaging().sendMulticast({
+          tokens: tokens,
+          ...message
+        });
+
+        console.log(`Notifications for user ${userId}: ${response.successCount} successes, ${response.failureCount} failures`);
+
+        // 실패한 토큰 처리
+        if (response.failureCount > 0) {
+          const failedTokens = [];
+          response.responses.forEach((resp, idx) => {
+            if (!resp.success) {
+              const failedToken = tokens[idx];
+              failedTokens.push({
+                token: failedToken,
+                error: resp.error,
+                deviceId: tokenToDeviceMap.get(failedToken)
+              });
+            }
+          });
+
+          // 유효하지 않은 토큰 정리
+          for (const {token, error, deviceId} of failedTokens) {
+            if (
+              error.code === 'messaging/invalid-registration-token' ||
+              error.code === 'messaging/registration-token-not-registered'
+            ) {
+              console.log(`Removing invalid token for device ${deviceId}`);
+              try {
+                await databases.deleteDocument(
+                  databaseId,
+                  process.env.APPWRITE_USER_DEVICES_COLLECTION_ID,
+                  deviceId
+                );
+              } catch (deleteError) {
+                console.error(`Error deleting invalid token document:`, deleteError);
+              }
+            } else {
+              console.error(`FCM error for device ${deviceId}:`, error);
+            }
           }
         }
-      });
-
-      await Promise.all(notifications);
+      } catch (error) {
+        console.error(`Error sending multicast messages to user ${userId}:`, error);
+      }
     }
   } catch (error) {
-    console.error('Error sending push notifications:', error);
+    console.error('Error in push notification process:', error);
   }
 }
 
