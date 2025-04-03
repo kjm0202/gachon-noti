@@ -248,14 +248,14 @@ async function sendPushNotifications(databases, databaseId, subscriptionsCollect
             }
           });
           
-<<<<<<< HEAD
+
           // 토큰이 유효하지 않거나 만료된 경우
           if (error.code === 'messaging/invalid-registration-token' || 
               error.code === 'messaging/registration-token-not-registered') {
             // 토큰 무효화를 위해 해당 디바이스 문서 삭제
             console.log(`Removing invalid token for device ${device.$id}`);
             await databases.deleteDocument(databaseId, userDevicesCollectionId, device.$id);
-=======
+
           // 유효하지 않은 토큰 정리
           for (const {token, error, deviceId} of failedTokens) {
             if (
@@ -275,7 +275,6 @@ async function sendPushNotifications(databases, databaseId, subscriptionsCollect
             } else {
               console.error(`FCM error for device ${deviceId}:`, error);
             }
->>>>>>> 8373d3aab5e5acf053cfc4680c9436601386050b
           }
         }
       } catch (error) {
