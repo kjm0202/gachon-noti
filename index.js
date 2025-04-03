@@ -149,7 +149,7 @@ function parsePubDate(dateStr) {
 }
 
 /**
- * 사용자들에게 푸시 알림 발송 (Multicast)
+ * 사용자들에게 푸시 알림 발송
  */
 async function sendPushNotifications(databases, databaseId, subscriptionsCollectionId, boardId, title, link) {
   try {
@@ -199,7 +199,7 @@ async function sendPushNotifications(databases, databaseId, subscriptionsCollect
     }
 
     // FCM 메시지 기본 구성
-    const message = {
+    const baseMessage = {
       notification: {
         title: `[${getBoardName(boardId)}] 새 공지사항`,
         body: title,
@@ -215,36 +215,36 @@ async function sendPushNotifications(databases, databaseId, subscriptionsCollect
     for (const [userId, devices] of userTokensMap.entries()) {
       console.log(`Sending notifications to user ${userId} with ${devices.length} devices`);
       
-      // 각 디바이스별 토큰 목록
-      const tokens = devices.map(d => d.token);
-      
-      // 디바이스 ID와 토큰 매핑
-      const tokenToDeviceMap = new Map();
-      devices.forEach(d => tokenToDeviceMap.set(d.token, d.deviceId));
-
       try {
-        // Multicast 메시지 전송
-        const response = await admin.messaging().sendMulticast({
-          tokens: tokens,
-          ...message
+        // 각 사용자의 모든 디바이스에 대한 메시지 배치 생성
+        const messages = devices.map(device => ({
+          token: device.token,
+          ...baseMessage
+        }));
+        
+        // sendEachForMulticast로 배치 메시지 전송
+        const response = await admin.messaging().sendEachForMulticast({
+          tokens: devices.map(d => d.token),
+          ...baseMessage
         });
-
+        
         console.log(`Notifications for user ${userId}: ${response.successCount} successes, ${response.failureCount} failures`);
-
+        
         // 실패한 토큰 처리
         if (response.failureCount > 0) {
           const failedTokens = [];
           response.responses.forEach((resp, idx) => {
             if (!resp.success) {
-              const failedToken = tokens[idx];
+              const failedToken = devices[idx].token;
+              const deviceId = devices[idx].deviceId;
               failedTokens.push({
                 token: failedToken,
                 error: resp.error,
-                deviceId: tokenToDeviceMap.get(failedToken)
+                deviceId: deviceId
               });
             }
           });
-
+          
           // 유효하지 않은 토큰 정리
           for (const {token, error, deviceId} of failedTokens) {
             if (
@@ -267,7 +267,7 @@ async function sendPushNotifications(databases, databaseId, subscriptionsCollect
           }
         }
       } catch (error) {
-        console.error(`Error sending multicast messages to user ${userId}:`, error);
+        console.error(`Error sending messages to user ${userId}:`, error);
       }
     }
   } catch (error) {
