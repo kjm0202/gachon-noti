@@ -39,6 +39,7 @@ dependencies:
   firebase_messaging: ^15.2.4
   web: ^1.1.1
   js_interop: ^0.0.1
+  pwa_install: ^0.0.5
 
 dependency_overrides:
   flutter_web_auth_2: ^4.1.0
