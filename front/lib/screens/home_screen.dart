@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:front/boards_selection.dart';
-import 'package:front/posts_page.dart';
+import '../boards_selection.dart';
+import '../posts_page.dart';
 import '../services/auth_services.dart';
 import '../services/firebase_services.dart';
 
 class HomeScreen extends StatefulWidget {
   final Client client;
 
-  const HomeScreen({Key? key, required this.client}) : super(key: key);
+  const HomeScreen({super.key, required this.client});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();

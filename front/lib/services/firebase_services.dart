@@ -1,6 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:appwrite/appwrite.dart';
-import 'package:front/const.dart';
+import '../const.dart';
 import 'package:web/web.dart' as web;
 
 // 콜백 핸들러 타입 정의

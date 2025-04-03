@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
-import 'package:appwrite/models.dart' as models;
-import 'package:front/const.dart'; // const.dart에서 API 관련 상수 가져오기
+import '../const.dart'; // const.dart에서 API 관련 상수 가져오기
 
 class BoardSelectionPage extends StatefulWidget {
   final Client client;
-  const BoardSelectionPage({Key? key, required this.client}) : super(key: key);
+  const BoardSelectionPage({super.key, required this.client});
 
   @override
   State<BoardSelectionPage> createState() => _BoardSelectionPageState();

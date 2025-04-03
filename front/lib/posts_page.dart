@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
-import 'package:front/const.dart';
+import '../const.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PostsPage extends StatefulWidget {
   final Client client;
   final String boardId;
-  const PostsPage({Key? key, required this.client, required this.boardId})
-    : super(key: key);
+  const PostsPage({super.key, required this.client, required this.boardId});
 
   @override
   State<PostsPage> createState() => _PostsPageState();

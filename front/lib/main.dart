@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:front/firebase_options.dart';
-import 'package:front/screens/home_screen.dart';
-import 'package:front/screens/login_screen.dart';
-import 'package:front/services/auth_services.dart';
-import 'package:front/const.dart';
+import './firebase_options.dart';
+import './screens/home_screen.dart';
+import './screens/login_screen.dart';
+import './services/auth_services.dart';
+import './const.dart';
 import 'package:web/web.dart' as web;
+import 'package:pwa_install/pwa_install.dart';
 
 // PWA 모드인지 확인하는 함수
 bool isPwaMode() {
@@ -29,6 +30,13 @@ void main() async {
     return;
   }
 
+  // PWA 설치 확인
+  PWAInstall().setup(
+    installCallback: () {
+      debugPrint('APP INSTALLED!');
+    },
+  );
+
   // PWA 모드 확인
   final bool isPwa = isPwaMode();
   Client? client;
@@ -49,7 +57,7 @@ void main() async {
 
 // PWA 모드가 아닐 때 표시되는 화면
 class PwaInstallScreen extends StatelessWidget {
-  const PwaInstallScreen({Key? key}) : super(key: key);
+  const PwaInstallScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -117,6 +125,13 @@ class _PwaInstallScreenContent extends StatelessWidget {
                   );
                 },
                 child: Text('설치 방법 보기'),
+              ),
+              SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {
+                  PWAInstall().promptInstall_();
+                },
+                child: Text('설치'),
               ),
             ],
           ),
