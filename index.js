@@ -24,7 +24,6 @@ async function main() {
   const DATABASE_ID = process.env.APPWRITE_DATABASE_ID;
   const POSTS_COLLECTION_ID = process.env.APPWRITE_POSTS_COLLECTION_ID;
   const SUBSCRIPTIONS_COLLECTION_ID = process.env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID;
-  const USER_DEVICES_COLLECTION_ID = process.env.APPWRITE_USER_DEVICES_COLLECTION_ID;
 
   // Firebase Admin SDK 초기화
   const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
@@ -37,10 +36,6 @@ async function main() {
 
   if (!FIREBASE_PROJECT_ID || !FIREBASE_CLIENT_EMAIL || !FIREBASE_PRIVATE_KEY) {
     throw new Error('Missing Firebase environment variables');
-  }
-
-  if (!USER_DEVICES_COLLECTION_ID) {
-    throw new Error('Missing APPWRITE_USER_DEVICES_COLLECTION_ID environment variable');
   }
 
   // Firebase 초기화
@@ -120,7 +115,7 @@ async function main() {
         console.log(`[NEW POST] boardId=${boardId}, title=${title.slice(0, 30)}`);
         
         // 해당 게시판을 구독한 사용자들에게 알림 발송
-        await sendPushNotifications(databases, DATABASE_ID, SUBSCRIPTIONS_COLLECTION_ID, USER_DEVICES_COLLECTION_ID, boardId, title, link);
+        await sendPushNotifications(databases, DATABASE_ID, SUBSCRIPTIONS_COLLECTION_ID, boardId, title, link);
       }
     } catch (err) {
       console.error(`Failed to parse feed ${boardId}:`, err);
@@ -156,7 +151,7 @@ function parsePubDate(dateStr) {
 /**
  * 사용자들에게 푸시 알림 발송
  */
-async function sendPushNotifications(databases, databaseId, subscriptionsCollectionId, userDevicesCollectionId, boardId, title, link) {
+async function sendPushNotifications(databases, databaseId, subscriptionsCollectionId, boardId, title, link) {
   try {
     // 해당 게시판을 구독한 사용자 목록 조회
     const subscribers = await databases.listDocuments(databaseId, subscriptionsCollectionId, [
@@ -171,7 +166,6 @@ async function sendPushNotifications(databases, databaseId, subscriptionsCollect
     console.log(`Found ${subscribers.total} subscribers for boardId=${boardId}`);
 
     // 사용자별 디바이스 토큰을 수집
-    // 각 사용자마다 한 번씩만 처리하기 위해 Map으로 관리
     const userTokensMap = new Map(); // userId -> fcm tokens array
 
     // 모든 구독자의 디바이스 토큰 수집
@@ -179,7 +173,7 @@ async function sendPushNotifications(databases, databaseId, subscriptionsCollect
       const userId = subscriber.userId;
       
       // user_devices 컬렉션에서 해당 사용자의 디바이스 토큰 조회
-      const userDevices = await databases.listDocuments(databaseId, userDevicesCollectionId, [
+      const userDevices = await databases.listDocuments(databaseId, process.env.APPWRITE_USER_DEVICES_COLLECTION_ID, [
         Query.equal('userId', userId),
       ]);
       
@@ -216,48 +210,30 @@ async function sendPushNotifications(databases, databaseId, subscriptionsCollect
       }
     };
 
-    // 각 사용자별로 한 번씩만 처리
+    // 각 사용자별로 알림 전송
     for (const [userId, devices] of userTokensMap.entries()) {
       console.log(`Sending notifications to user ${userId} with ${devices.length} devices`);
       
+      // 각 디바이스별로 개별 메시지 생성
+      const messages = devices.map(device => ({
+        notification: baseMessage.notification,
+        data: baseMessage.data,
+        token: device.token
+      }));
+      
       try {
-        // 각 디바이스별로 개별 메시지 생성 (sendEach 방식)
-        const messages = devices.map(device => ({
-          notification: baseMessage.notification,
-          data: baseMessage.data,
-          token: device.token
-        }));
-        
-        // sendEach로 메시지 전송 (각 메시지는 완전한 형태여야 함)
+        // 메시지 전송
         const response = await admin.messaging().sendEach(messages);
-        
         console.log(`Notifications for user ${userId}: ${response.successCount} successes, ${response.failureCount} failures`);
         
         // 실패한 토큰 처리
         if (response.failureCount > 0) {
-          const failedTokens = [];
-          response.responses.forEach((resp, idx) => {
-            if (!resp.success) {
-              const failedToken = devices[idx].token;
-              const deviceId = devices[idx].deviceId;
-              failedTokens.push({
-                token: failedToken,
-                error: resp.error,
-                deviceId: deviceId
-              });
-            }
-          });
+          const failedTokens = response.responses
+            .map((resp, idx) => !resp.success ? { token: devices[idx].token, error: resp.error, deviceId: devices[idx].deviceId } : null)
+            .filter(Boolean);
           
-
-          // 토큰이 유효하지 않거나 만료된 경우
-          if (error.code === 'messaging/invalid-registration-token' || 
-              error.code === 'messaging/registration-token-not-registered') {
-            // 토큰 무효화를 위해 해당 디바이스 문서 삭제
-            console.log(`Removing invalid token for device ${device.$id}`);
-            await databases.deleteDocument(databaseId, userDevicesCollectionId, device.$id);
-
           // 유효하지 않은 토큰 정리
-          for (const {token, error, deviceId} of failedTokens) {
+          for (const {deviceId, error} of failedTokens) {
             if (
               error.code === 'messaging/invalid-registration-token' ||
               error.code === 'messaging/registration-token-not-registered'
