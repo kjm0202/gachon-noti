@@ -18,7 +18,7 @@ bool isPwaMode() {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  /* 
   // URL에서 세션 콜백 확인
   final Uri currentUrl = Uri.parse(web.window.location.href);
   final bool isRedirect = currentUrl.path.contains('auth-callback');
@@ -28,7 +28,7 @@ void main() async {
     (web.window.opener as dynamic)?.postMessage('login-success', '*');
     web.window.close();
     return;
-  }
+  } */
 
   // PWA 설치 확인
   PWAInstall().setup(

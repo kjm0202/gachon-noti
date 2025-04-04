@@ -43,41 +43,34 @@ class AuthService {
   }) async {
     try {
       // 현재 URL을 기반으로 success/failure URL 설정
-      final currentUrl = web.window.location.href;
-      final successUrl = currentUrl;
-      final failureUrl = currentUrl;
+      final currentUrl = web.window.location.origin;
+      print('currentUrl: $currentUrl');
+      final successUrl = '$currentUrl/auth.html';
+      print('successUrl: $successUrl');
 
       // OAuth 세션 생성 시도
       await _account.createOAuth2Session(
         provider: OAuthProvider.google,
         success: successUrl,
-        failure: failureUrl,
       );
 
-      // 세션 생성 후 상태 확인 (최대 3번 시도)
-      int attempts = 0;
-      while (attempts < 3) {
-        try {
-          final user = await _account.get();
-          _userEmail = user.email;
-          _userId = user.$id;
-          onLoginSuccess();
-          return true;
-        } catch (e) {
-          print('Session check attempt ${attempts + 1} failed: $e');
-          await Future.delayed(Duration(seconds: 1));
-          attempts++;
+      // 직접 세션 상태 확인
+      try {
+        final user = await _account.get();
+        _userEmail = user.email;
+        _userId = user.$id;
+        onLoginSuccess();
+        return true;
+      } catch (e) {
+        print('로그인 후 세션 확인 실패: $e');
+        onLoginFailed();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('로그인 정보를 가져오는데 실패했습니다. 페이지를 새로고침해주세요.')),
+          );
         }
+        return false;
       }
-
-      // 3번 시도 후에도 실패
-      onLoginFailed();
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('로그인 정보를 가져오는데 실패했습니다. 페이지를 새로고침해주세요.')),
-        );
-      }
-      return false;
     } catch (e) {
       print('Login failed: $e');
       onLoginFailed();

@@ -15,7 +15,7 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// 백그라운드 메시지 처리
+/* // 백그라운드 메시지 처리
 messaging.onBackgroundMessage((message) => {
   console.log("onBackgroundMessage", message);
   
@@ -88,4 +88,4 @@ self.addEventListener('notificationclick', (event) => {
   });
   
   event.waitUntil(promiseChain);
-});
+}); */
