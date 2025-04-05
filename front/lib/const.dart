@@ -1,5 +1,5 @@
 class API {
-  static const String apiUrl = 'https://cloud.appwrite.io/v1';
+  static const String apiUrl = 'https://gachon-noti.ven0m.kr/v1';
   static const String projectId = '67e9e6560004e7a4882e';
   static const String databaseId = '67e9e74d002363ad2073';
   static const String collectionsUserDevicesId = '67ea30ec00005253bbcd';

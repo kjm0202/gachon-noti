@@ -42,7 +42,12 @@ dependencies:
     git:
       url: https://github.com/jtmuller5/pwa_install.git
       ref: 82320a2
+  pwa_update_listener:
+    git:
+      url: https://github.com/kjm0202/pwa_update_listener.git
+      ref: master
   url_launcher: ^6.3.1
+  js_interop: ^0.0.1
 
 dependency_overrides:
   flutter_web_auth_2: ^4.1.0

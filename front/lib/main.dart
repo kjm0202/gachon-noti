@@ -1,34 +1,24 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:web/web.dart' as web;
+import 'package:pwa_install/pwa_install.dart';
+import 'package:pwa_update_listener/pwa_update_listener.dart';
+
 import './firebase_options.dart';
 import './screens/home_screen.dart';
 import './screens/login_screen.dart';
 import './services/auth_services.dart';
 import './const.dart';
-import 'package:web/web.dart' as web;
-import 'package:pwa_install/pwa_install.dart';
 
 // PWA 모드인지 확인하는 함수
 bool isPwaMode() {
-  return web.window.matchMedia('(display-mode: standalone)').matches ||
-      web.window.matchMedia('(display-mode: fullscreen)').matches ||
-      web.window.matchMedia('(display-mode: minimal-ui)').matches;
+  return web.window.matchMedia('(display-mode: standalone)').matches;
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  /* 
-  // URL에서 세션 콜백 확인
-  final Uri currentUrl = Uri.parse(web.window.location.href);
-  final bool isRedirect = currentUrl.path.contains('auth-callback');
-
-  if (isRedirect) {
-    // 부모 창으로 메시지 전송 후 현재 창 닫기
-    (web.window.opener as dynamic)?.postMessage('login-success', '*');
-    web.window.close();
-    return;
-  } */
 
   // PWA 설치 확인
   PWAInstall().setup(
@@ -133,6 +123,9 @@ class _PwaInstallScreenContent extends StatelessWidget {
                 },
                 child: Text('설치'),
               ),
+              Text(
+                "You are running the web application on ${defaultTargetPlatform.name}",
+              ),
             ],
           ),
         ),
@@ -145,7 +138,7 @@ class _PwaInstallScreenContent extends StatelessWidget {
 class AppContent extends StatefulWidget {
   final Client client;
 
-  const AppContent({Key? key, required this.client}) : super(key: key);
+  const AppContent({super.key, required this.client});
 
   @override
   State<AppContent> createState() => _AppContentState();
@@ -169,6 +162,11 @@ class _AppContentState extends State<AppContent> {
     });
   }
 
+  // PWA 새로고침 함수
+  /* void reloadPwa() {
+    web.window.location.reload();
+  } */
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -177,12 +175,37 @@ class _AppContentState extends State<AppContent> {
       home:
           !_initialized
               ? _buildLoadingScreen()
-              : _authService.isLoggedIn
-              ? HomeScreen(client: widget.client)
-              : LoginScreen(
-                onLoginSuccess: () {
-                  setState(() {}); // 로그인 후 화면 갱신
+              : PwaUpdateListener(
+                onReady: () {
+                  /// 새 버전이 준비되면 SnackBar 표시
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          Expanded(child: Text('새로운 업데이트가 준비되었습니다.')),
+                          TextButton(
+                            onPressed: () {
+                              reloadPwa(); // 앱 새로고침
+                            },
+                            child: Text('업데이트'),
+                          ),
+                        ],
+                      ),
+                      duration: Duration(
+                        days: 365,
+                      ), // 매우 길게 설정하여 사용자가 닫기 전까지 유지
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
                 },
+                child:
+                    _authService.isLoggedIn
+                        ? HomeScreen(client: widget.client)
+                        : LoginScreen(
+                          onLoginSuccess: () {
+                            setState(() {}); // 로그인 후 화면 갱신
+                          },
+                        ),
               ),
     );
   }
