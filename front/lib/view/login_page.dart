@@ -1,33 +1,27 @@
 import 'package:flutter/material.dart';
-import '../services/auth_services.dart';
+import '../controller/login_controller.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginPage extends StatefulWidget {
   final Function onLoginSuccess;
 
-  const LoginScreen({Key? key, required this.onLoginSuccess}) : super(key: key);
+  const LoginPage({super.key, required this.onLoginSuccess});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  final _authService = AuthService();
-  bool _isLoggingIn = false;
+class _LoginPageState extends State<LoginPage> {
+  final LoginController _controller = LoginController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('가천대학교 공지사항')),
+      appBar: AppBar(title: Text('가천 알림이')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              '가천대학교 공지사항 알림 서비스',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            SizedBox(height: 20),
-            if (_isLoggingIn)
+            if (_controller.isLoggingIn)
               CircularProgressIndicator()
             else
               ElevatedButton(
@@ -51,22 +45,18 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    setState(() {
-      _isLoggingIn = true;
-    });
-
-    await _authService.loginWithGoogle(
+    await _controller.loginWithGoogle(
       context: context,
-      onLoginSuccess: () {
-        setState(() {
-          _isLoggingIn = false;
-        });
-        widget.onLoginSuccess();
-      },
+      onLoginSuccess: widget.onLoginSuccess,
       onLoginFailed: () {
-        setState(() {
-          _isLoggingIn = false;
-        });
+        // 로그인 실패 시 처리 (예: 에러 메시지 표시)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('로그인에 실패했습니다. 다시 시도해주세요.')));
+      },
+      onStateChange: () {
+        // 상태 변경 시 UI 업데이트
+        setState(() {});
       },
     );
   }

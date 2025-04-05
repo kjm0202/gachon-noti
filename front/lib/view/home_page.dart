@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'boards_selection.dart';
-import 'posts_page.dart';
+import 'subscription_view.dart';
+import 'posts_view.dart';
 import '../services/auth_services.dart';
 import '../services/firebase_services.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomePage extends StatefulWidget {
   final Client client;
 
-  const HomeScreen({super.key, required this.client});
+  const HomePage({super.key, required this.client});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomePageState extends State<HomePage> {
   final _authService = AuthService();
   final _firebaseService = FirebaseService();
   late Databases _databases;
@@ -85,8 +85,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> pages = [
-      BoardSelectionPage(client: widget.client),
-      PostsPage(client: widget.client, boardId: 'all'),
+      SubscriptionView(client: widget.client),
+      PostsView(client: widget.client, boardId: 'all'),
     ];
 
     return Scaffold(
