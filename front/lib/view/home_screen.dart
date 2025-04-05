@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import '../boards_selection.dart';
-import '../posts_page.dart';
+import 'boards_selection.dart';
+import 'posts_page.dart';
 import '../services/auth_services.dart';
 import '../services/firebase_services.dart';
 

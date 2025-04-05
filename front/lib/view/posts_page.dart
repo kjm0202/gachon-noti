@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
-import '../const.dart';
+import '../utils/const.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PostsPage extends StatefulWidget {

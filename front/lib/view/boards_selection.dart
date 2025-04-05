@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
-import '../const.dart'; // const.dart에서 API 관련 상수 가져오기
+import '../utils/const.dart'; // const.dart에서 API 관련 상수 가져오기
 
 class BoardSelectionPage extends StatefulWidget {
   final Client client;

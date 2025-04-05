@@ -1,11 +1,11 @@
 {
-    "name": "front",
-    "short_name": "front",
+    "name": "가천 알림이",
+    "short_name": "가천 알림이",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "가천대학교 게시판 알림 서비스",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

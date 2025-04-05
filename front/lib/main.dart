@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
@@ -7,10 +8,10 @@ import 'package:pwa_install/pwa_install.dart';
 import 'package:pwa_update_listener/pwa_update_listener.dart';
 
 import './firebase_options.dart';
-import './screens/home_screen.dart';
-import './screens/login_screen.dart';
+import 'view/home_screen.dart';
+import 'view/login_screen.dart';
 import './services/auth_services.dart';
-import './const.dart';
+import 'utils/const.dart';
 
 // PWA 모드인지 확인하는 함수
 bool isPwaMode() {
@@ -79,52 +80,55 @@ class _PwaInstallScreenContent extends StatelessWidget {
               ),
               SizedBox(height: 16),
               Text(
-                '이 앱은 홈 화면에 설치하여 사용해야 합니다. 브라우저 메뉴에서 "홈 화면에 추가" 옵션을 선택해주세요.',
+                '이 앱은 기기의 홈 화면에 설치하여 사용해야 합니다. 아래 설치 버튼을 누르시거나, 브라우저 메뉴에서 "홈 화면에 추가" 옵션을 선택해주세요.',
                 style: Theme.of(context).textTheme.bodyLarge,
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () {
-                  // 설치 방법에 대한 상세 안내 다이얼로그 표시
-                  showDialog(
-                    context: context,
-                    builder:
-                        (context) => AlertDialog(
-                          title: Text('설치 방법'),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Chrome 브라우저:'),
-                              Text('1. 오른쪽 상단 메뉴(⋮) 클릭'),
-                              Text('2. "앱 설치" 또는 "홈 화면에 추가" 선택'),
-                              SizedBox(height: 8),
-                              Text('Safari 브라우저:'),
-                              Text('1. 하단 공유 버튼 클릭'),
-                              Text('2. "홈 화면에 추가" 선택'),
-                            ],
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: Text('확인'),
+                  if (defaultTargetPlatform == TargetPlatform.iOS) {
+                    showModalBottomSheet(
+                      context: context,
+                      builder:
+                          (context) => Container(
+                            child: Column(
+                              children: [
+                                Text(
+                                  'iOS 설치 방법 (Safari 권장)',
+                                  style:
+                                      Theme.of(context).textTheme.titleMedium,
+                                ),
+                                Row(
+                                  children: [
+                                    Text('1. 메뉴 바의 공유('),
+                                    Icon(
+                                      CupertinoIcons.share,
+                                      size: 14,
+                                      color: Color(0xFF007AFF),
+                                    ),
+                                    Text(') 버튼 클릭'),
+                                  ],
+                                ),
+                                Text('2. 공유 메뉴에서 "홈 화면에 추가" 선택'),
+                                Text('3. 홈 화면에 앱이 설치되면 눌러서 실행'),
+                              ],
                             ),
-                          ],
+                          ),
+                    );
+                  } else {
+                    PWAInstall().promptInstall_();
+                    if (defaultTargetPlatform == TargetPlatform.windows) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Windows에서는 설치 후 F5를 눌러 새로고침 해주세요.'),
+                          duration: Duration(seconds: 3),
                         ),
-                  );
-                },
-                child: Text('설치 방법 보기'),
-              ),
-              SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () {
-                  PWAInstall().promptInstall_();
+                      );
+                    }
+                  }
                 },
                 child: Text('설치'),
-              ),
-              Text(
-                "You are running the web application on ${defaultTargetPlatform.name}",
               ),
             ],
           ),
@@ -170,7 +174,7 @@ class _AppContentState extends State<AppContent> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Gachon Notices',
+      title: '가천 알림이',
       theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
       home:
           !_initialized
