@@ -35,6 +35,29 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _initFirebase() async {
+    await showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text('알림 권한 요청'),
+            content: Text('알림 권한을 허용해주세요.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  return;
+                },
+                child: Text('취소'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Text('허용'),
+              ),
+            ],
+          ),
+    );
     _fcmToken = await _firebaseService.initFCM(
       databases: _databases,
       userId: _authService.userId,
