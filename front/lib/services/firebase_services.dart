@@ -26,14 +26,18 @@ class FirebaseService {
     try {
       // FCM 권한 요청
       NotificationSettings settings = await FirebaseMessaging.instance
-          .requestPermission(alert: true, badge: true, sound: true);
+          .requestPermission(
+            alert: true,
+            badge: true,
+            sound: true,
+            provisional: true,
+          );
       print('FCM permission status: ${settings.authorizationStatus}');
 
       // 웹 환경에서는 VAPID 키가 필요
       final token = await FirebaseMessaging.instance.getToken(
         vapidKey: API.vapidKey,
       );
-      print('FCM Token: $token');
 
       _onMessageClickHandler = handleNotificationClick;
 

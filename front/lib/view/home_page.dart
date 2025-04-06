@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:web/web.dart' as web;
 import 'subscription_view.dart';
 import 'posts_view.dart';
 import '../services/auth_services.dart';
@@ -40,15 +41,8 @@ class _HomePageState extends State<HomePage> {
       builder:
           (context) => AlertDialog(
             title: Text('알림 권한 요청'),
-            content: Text('알림 권한을 허용해주세요.'),
+            content: Text('\'확인\' 버튼을 누른 뒤 나오는 팝업에서 알림 권한을 허용해주세요.'),
             actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  return;
-                },
-                child: Text('취소'),
-              ),
               TextButton(
                 onPressed: () {
                   Navigator.pop(context);
@@ -101,8 +95,35 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _logout() async {
-    await _authService.logout();
-    // 로그아웃 처리 및 화면 전환 등의 로직
+    await showAdaptiveDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text('로그아웃'),
+            content: Text('로그아웃 하시겠습니까?'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Text('취소'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context); // 다이얼로그 닫기
+
+                  // 로그아웃 처리
+                  await _authService.logout();
+
+                  // 웹 브라우저 새로고침을 통해 앱 전체 리로드
+                  // AppContentView가 다시 로드되며 isLoggedIn 상태 확인
+                  web.window.location.reload();
+                },
+                child: Text('확인'),
+              ),
+            ],
+          ),
+    );
   }
 
   @override

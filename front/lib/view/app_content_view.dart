@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
+import 'package:gachon_noti_front/theme.dart';
 import 'package:pwa_update_listener/pwa_update_listener.dart';
 import 'package:web/web.dart' as web;
 
@@ -42,9 +43,13 @@ class _AppContentViewState extends State<AppContentView> {
 
   @override
   Widget build(BuildContext context) {
+    final materialTheme = MaterialTheme(Theme.of(context).textTheme);
+
     return MaterialApp(
       title: '가천 알림이',
-      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
+      theme: materialTheme.light(),
+      darkTheme: materialTheme.dark(),
+      themeMode: ThemeMode.system,
       home:
           !_initialized
               ? _buildLoadingScreen()

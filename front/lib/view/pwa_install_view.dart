@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa_install/pwa_install.dart';
+import '../theme.dart';
 
 // PWA 모드가 아닐 때 표시되는 화면
 class PwaInstallView extends StatelessWidget {
@@ -9,9 +10,13 @@ class PwaInstallView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final materialTheme = MaterialTheme(Theme.of(context).textTheme);
+
     return MaterialApp(
       title: '가천대학교 공지사항',
-      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
+      theme: materialTheme.light(),
+      darkTheme: materialTheme.dark(),
+      themeMode: ThemeMode.system,
       home: const _PwaInstallScreenContent(),
     );
   }
