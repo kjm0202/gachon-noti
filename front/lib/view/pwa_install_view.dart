@@ -59,11 +59,17 @@ class _PwaInstallScreenContent extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               AutoSizeText(
-                '''
-이 앱은 기기의 홈 화면에 설치하여 사용해야 합니다.
-(${defaultTargetPlatform == TargetPlatform.iOS ? 'Safari' : 'Chrome'} 브라우저 권장)
-아래 설치 버튼을 눌러주세요.
-''',
+                '이 앱은 기기의 홈 화면에 설치 후 사용해야 합니다.',
+                style: Theme.of(context).textTheme.bodyLarge,
+                textAlign: TextAlign.center,
+              ),
+              AutoSizeText(
+                '(${defaultTargetPlatform == TargetPlatform.iOS ? 'Safari' : 'Chrome'} 브라우저 권장)',
+                style: Theme.of(context).textTheme.bodyLarge,
+                textAlign: TextAlign.center,
+              ),
+              AutoSizeText(
+                '아래 설치 버튼을 눌러주세요.',
                 style: Theme.of(context).textTheme.bodyLarge,
                 textAlign: TextAlign.center,
               ),
