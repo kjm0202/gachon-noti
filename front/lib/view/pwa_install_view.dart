@@ -1,3 +1,5 @@
+import 'package:web/web.dart' as web;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -145,11 +147,17 @@ class _PwaInstallScreenContent extends StatelessWidget {
                         defaultTargetPlatform == TargetPlatform.macOS ||
                         defaultTargetPlatform == TargetPlatform.linux) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
+                        SnackBar(
                           content: AutoSizeText(
-                            'PC에서는 설치 후 새 창이 뜨면 F5를 눌러 새로고침 해주세요.',
+                            'PC에서는 설치 후 새 창이 뜨면 새로고침 해주세요.',
                           ),
-                          duration: Duration(seconds: 5),
+                          action: SnackBarAction(
+                            label: '새로고침',
+                            onPressed: () {
+                              web.window.location.reload();
+                            },
+                          ),
+                          duration: Duration(days: 365),
                         ),
                       );
                     }
