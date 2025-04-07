@@ -122,7 +122,7 @@ class _PostsViewState extends State<PostsView> {
             margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: ListTile(
               title: Text(
-                post['title'] ?? 'No Title',
+                post['title'] ?? '(제목 없음)',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),

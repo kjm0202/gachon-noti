@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_auto_size_text/flutter_auto_size_text.dart';
 import 'package:web/web.dart' as web;
+import 'package:package_info_plus/package_info_plus.dart';
+
 import 'subscription_view.dart';
 import 'posts_view.dart';
 import '../services/auth_services.dart';
 import '../services/firebase_services.dart';
+import '../utils/korean_wrapper.dart';
 
 class HomePage extends StatefulWidget {
   final Client client;
@@ -41,7 +45,7 @@ class _HomePageState extends State<HomePage> {
         await FirebaseMessaging.instance.getNotificationSettings();
 
     // 아직 허용되지 않은 경우에만 다이얼로그 표시
-    if (settings.authorizationStatus != AuthorizationStatus.authorized) {
+    if (settings.authorizationStatus == AuthorizationStatus.notDetermined) {
       if (!mounted) return;
 
       await showDialog(
@@ -49,7 +53,7 @@ class _HomePageState extends State<HomePage> {
         builder:
             (context) => AlertDialog(
               title: Text('알림 권한 요청'),
-              content: Text('\'확인\' 버튼을 누른 뒤 나오는 팝업에서 알림 권한을 허용해주세요.'),
+              content: Text('\'확인\' 버튼을 누른 뒤 나오는 팝업에서 알림 권한을 허용해주세요.'.wrapped),
               actions: [
                 TextButton(
                   onPressed: () {
@@ -73,6 +77,31 @@ class _HomePageState extends State<HomePage> {
       showInAppNotification: _showInAppNotification,
       handleNotificationClick: _handleNotificationClick,
     );
+
+    if (settings.authorizationStatus == AuthorizationStatus.denied) {
+      if (!mounted) return;
+
+      await showDialog(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: Text('⚠️알림 권한 거부됨'),
+              content: AutoSizeText('''
+알림 권한이 거부되어 알림을 받을 수 없어요. 
+실수로 거부를 누르셨다면,
+앱 삭제 후 다시 설치하여 진행해주세요.
+'''),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text('확인'),
+                ),
+              ],
+            ),
+      );
+    }
   }
 
   void _showInAppNotification(RemoteMessage message) {
@@ -151,6 +180,29 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.logout),
             onPressed: _logout,
             tooltip: '로그아웃',
+          ),
+          IconButton(
+            icon: Icon(Icons.info),
+            onPressed: () async {
+              final packageInfo = await PackageInfo.fromPlatform();
+              if (context.mounted) {
+                showAboutDialog(
+                  context: context,
+                  applicationName: '가천 알림이',
+                  applicationVersion: packageInfo.version,
+                  applicationIcon: Image.asset(
+                    'assets/icons/app_icon.png',
+                    width: 48,
+                    height: 48,
+                  ),
+                  children: [
+                    AutoSizeText('Made by 무적소웨 졸업생'),
+                    AutoSizeText('이 앱은 가천대학교 공식 앱이 아닙니다.'),
+                  ],
+                );
+              }
+            },
+            tooltip: '앱 정보',
           ),
         ],
       ),
