@@ -36,22 +36,32 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _initFirebase() async {
-    await showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text('알림 권한 요청'),
-            content: Text('\'확인\' 버튼을 누른 뒤 나오는 팝업에서 알림 권한을 허용해주세요.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text('허용'),
-              ),
-            ],
-          ),
-    );
+    // 현재 알림 권한 상태 확인
+    NotificationSettings settings =
+        await FirebaseMessaging.instance.getNotificationSettings();
+
+    // 아직 허용되지 않은 경우에만 다이얼로그 표시
+    if (settings.authorizationStatus != AuthorizationStatus.authorized) {
+      if (!mounted) return;
+
+      await showDialog(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: Text('알림 권한 요청'),
+              content: Text('\'확인\' 버튼을 누른 뒤 나오는 팝업에서 알림 권한을 허용해주세요.'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text('확인'),
+                ),
+              ],
+            ),
+      );
+    }
+
     _fcmToken = await _firebaseService.initFCM(
       databases: _databases,
       userId: _authService.userId,
