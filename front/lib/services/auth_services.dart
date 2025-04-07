@@ -66,7 +66,13 @@ class AuthService {
         onLoginFailed();
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('로그인 정보를 가져오는데 실패했습니다. 페이지를 새로고침해주세요.')),
+            SnackBar(
+              content: Text('로그인 정보를 가져오는데 실패했습니다. 페이지를 새로고침해주세요.'),
+              action: SnackBarAction(
+                label: '새로고침',
+                onPressed: () => web.window.location.reload(),
+              ),
+            ),
           );
         }
         return false;

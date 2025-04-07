@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../controller/login_controller.dart';
 
 class LoginPage extends StatefulWidget {
@@ -31,9 +32,16 @@ class _LoginPageState extends State<LoginPage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.login),
+                      SvgPicture.asset(
+                        'assets/icons/google.svg',
+                        width: 24,
+                        height: 24,
+                      ),
                       SizedBox(width: 8),
-                      Text('Google 계정으로 로그인'),
+                      Text(
+                        'Google 계정으로 로그인',
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
                     ],
                   ),
                 ),
