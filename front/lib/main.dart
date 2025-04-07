@@ -47,16 +47,6 @@ void main() async {
       FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
       return true;
     };
-    Isolate.current.addErrorListener(
-      RawReceivePort((pair) async {
-        final List<dynamic> errorAndStacktrace = pair;
-        await FirebaseCrashlytics.instance.recordError(
-          errorAndStacktrace.first,
-          errorAndStacktrace.last,
-          fatal: true,
-        );
-      }).sendPort,
-    );
 
     // Appwrite 클라이언트 초기화
     client = Client().setEndpoint(API.apiUrl).setProject(API.projectId);
