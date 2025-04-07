@@ -15,33 +15,20 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-/* // 백그라운드 메시지 처리
-messaging.onBackgroundMessage((message) => {
-  console.log("onBackgroundMessage", message);
-  
-  const notification = message.notification;
-  
-  // 알림을 생성하고 표시
-  const notificationTitle = notification?.title || '가천대학교 공지사항';
-  const notificationOptions = {
-    body: notification?.body || '새로운 공지사항이 있습니다.',
-    icon: '/icons/Icon-192.png',
-    data: message.data, // 데이터 전달
-    tag: 'gachon-notice', // 알림 그룹화
-    click_action: '/', // 기본 URL
-  };
-  
-  if (message.data && message.data.link) {
-    notificationOptions.click_action = message.data.link;
-  }
-  
-  return self.registration.showNotification(notificationTitle, notificationOptions);
+// Flutter 앱에서 알림을 처리하므로 백그라운드 메시지 핸들러를 최소화
+// 알림 표시는 FCM 서버에서 직접 처리하도록 하고 여기서는 최소한의 처리만 수행
+messaging.onBackgroundMessage(async (message) => {
+  console.log("[SW] Background message received", message);
+  // 여기서는 알림을 직접 생성하지 않음
+  // FCM이 자동으로 생성한 알림만 사용하여 중복 방지
+  return Promise.resolve();
 });
 
-// 알림 클릭 이벤트 처리
+// 알림 클릭 이벤트 처리 - 이 부분이 안드로이드 Chrome에서 필요한 핵심 기능
 self.addEventListener('notificationclick', (event) => {
-  console.log('Notification clicked', event);
+  console.log('[SW] Notification clicked', event);
   
+  // 알림 닫기
   event.notification.close();
   
   // 데이터 추출
@@ -88,4 +75,4 @@ self.addEventListener('notificationclick', (event) => {
   });
   
   event.waitUntil(promiseChain);
-}); */
+});
