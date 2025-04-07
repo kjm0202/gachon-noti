@@ -261,9 +261,9 @@ class BoardSelectionController {
       case 'other':
         return '기타';
       case 'dormGlobal':
-        return '글로벌미래캠퍼스 기숙사';
+        return '글캠 기숙사';
       case 'dormMedical':
-        return '메디컬캠퍼스 기숙사';
+        return '메캠 기숙사';
       default:
         return boardId;
     }
@@ -284,7 +284,7 @@ class BoardSelectionController {
       case 'other':
         return '기타 공지사항';
       case 'dormGlobal':
-        return '글로벌미래캠퍼스(성남) 기숙사 공지';
+        return '글로벌캠퍼스(성남) 기숙사 공지';
       case 'dormMedical':
         return '메디컬캠퍼스(인천) 기숙사 공지';
       default:

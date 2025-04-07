@@ -7,8 +7,11 @@ class PostsController {
   late Account _account;
   late Databases _databases;
   List<Map<String, dynamic>> posts = [];
+  List<Map<String, dynamic>> filteredPosts = []; // 필터링된 게시물 목록
   bool loading = true;
   List<String> subscribedBoards = [];
+  String searchQuery = ''; // 검색어
+  String selectedTagFilter = 'all'; // 선택된 태그 필터, 기본값은 'all'
 
   PostsController({required this.client, required this.boardId}) {
     _account = Account(client);
@@ -58,6 +61,7 @@ class PostsController {
 
       if (targetBoards.isEmpty) {
         posts = [];
+        filteredPosts = [];
         loading = false;
         if (onSuccess != null) onSuccess();
         return;
@@ -73,7 +77,19 @@ class PostsController {
         ],
       );
 
-      posts = result.documents.map((doc) => doc.data).toList();
+      posts =
+          result.documents.map((doc) {
+            // description이 없는 경우 빈 문자열로 설정
+            final data = doc.data;
+            if (data['description'] == null) {
+              data['description'] = '';
+            }
+            return data;
+          }).toList();
+
+      // 초기에는 필터링된 게시물 목록과 전체 게시물 목록이 동일
+      filteredPosts = List.from(posts);
+
       loading = false;
       if (onSuccess != null) onSuccess();
     } catch (err) {
@@ -83,6 +99,52 @@ class PostsController {
         onError(err);
       }
     }
+  }
+
+  // 검색어로 게시물 필터링
+  void searchByTitle(String query) {
+    searchQuery = query;
+    _applyFilters();
+  }
+
+  // 태그로 게시물 필터링
+  void filterByTag(String tag) {
+    selectedTagFilter = tag;
+    _applyFilters();
+  }
+
+  // 검색어와 태그 필터 모두 적용
+  void _applyFilters() {
+    // 먼저 태그 필터 적용
+    var tempFiltered = List<Map<String, dynamic>>.from(posts);
+
+    // 'all'이 아닌 경우에만 태그 필터링 적용
+    if (selectedTagFilter != 'all') {
+      tempFiltered =
+          tempFiltered.where((post) {
+            return post['boardId'] == selectedTagFilter;
+          }).toList();
+    }
+
+    // 검색어가 있는 경우 제목 또는 내용으로 필터링
+    if (searchQuery.isNotEmpty) {
+      tempFiltered =
+          tempFiltered.where((post) {
+            final title = post['title']?.toString().toLowerCase() ?? '';
+            final description =
+                post['description']?.toString().toLowerCase() ?? '';
+            final query = searchQuery.toLowerCase();
+            return title.contains(query) || description.contains(query);
+          }).toList();
+    }
+
+    filteredPosts = tempFiltered;
+  }
+
+  // 현재 선택 가능한 태그 목록 반환 (구독 중인 태그들)
+  List<String> getAvailableTags() {
+    // 'all' 옵션을 기본으로 추가하고, 구독 중인 태그들을 추가
+    return ['all', ...subscribedBoards];
   }
 
   String getBoardName(String boardId) {
@@ -100,9 +162,9 @@ class PostsController {
       case 'other':
         return '기타';
       case 'dormGlobal':
-        return '글로벌미래캠퍼스 기숙사';
+        return '글캠 기숙사';
       case 'dormMedical':
-        return '메디컬캠퍼스 기숙사';
+        return '메캠 기숙사';
       case 'all':
         return '전체 게시물';
       default:

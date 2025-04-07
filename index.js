@@ -271,8 +271,8 @@ function getBoardName(boardId) {
     'job': '취업',
     'extracurricular': '비교과',
     'other': '기타',
-    'dormGlobal': '글로벌 기숙사',
-    'dormMedical': '의학 기숙사',
+    'dormGlobal': '글캠 기숙사',
+    'dormMedical': '메캠 기숙사',
   };
   
   return boardNames[boardId] || boardId;
