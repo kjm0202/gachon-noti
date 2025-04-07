@@ -9,6 +9,9 @@ class BoardSelectionController {
   bool loading = true;
   String? subscriptionId;
   List<String> subscribedBoards = [];
+  List<String> tempSubscribedBoards = [];
+  bool get hasChanges =>
+      !_areListsEqual(subscribedBoards, tempSubscribedBoards);
 
   final List<String> allBoards = [
     'bachelor',
@@ -24,6 +27,19 @@ class BoardSelectionController {
   BoardSelectionController({required this.client}) {
     _account = Account(client);
     _databases = Databases(client);
+  }
+
+  bool _areListsEqual(List<String> list1, List<String> list2) {
+    if (list1.length != list2.length) return false;
+
+    final sortedList1 = List<String>.from(list1)..sort();
+    final sortedList2 = List<String>.from(list2)..sort();
+
+    for (int i = 0; i < sortedList1.length; i++) {
+      if (sortedList1[i] != sortedList2[i]) return false;
+    }
+
+    return true;
   }
 
   Future<void> initUserAndLoadSubscription({
@@ -73,6 +89,7 @@ class BoardSelectionController {
 
         subscribedBoards =
             boardsField != null ? List<String>.from(boardsField) : [];
+        tempSubscribedBoards = List<String>.from(subscribedBoards);
         loading = false;
       } else {
         print('No subscription found, creating new...'); // 디버깅용 로그 추가
@@ -110,6 +127,7 @@ class BoardSelectionController {
       print('Created subscription document: ${result.$id}'); // 디버깅용 로그 추가
 
       subscribedBoards = [];
+      tempSubscribedBoards = [];
       loading = false;
     } catch (err) {
       print('Error creating subscription doc: $err');
@@ -121,7 +139,60 @@ class BoardSelectionController {
   }
 
   bool isBoardSubscribed(String boardId) {
-    return subscribedBoards.contains(boardId);
+    return tempSubscribedBoards.contains(boardId);
+  }
+
+  void toggleBoardTemp(String boardId) {
+    final newList = List<String>.from(tempSubscribedBoards);
+    if (newList.contains(boardId)) {
+      newList.remove(boardId);
+    } else {
+      newList.add(boardId);
+    }
+
+    tempSubscribedBoards = newList;
+  }
+
+  Future<bool> saveAllSubscriptions({
+    Function? onUpdate,
+    Function? onError,
+  }) async {
+    if (userId == null) return false;
+    if (!hasChanges) return true;
+
+    try {
+      if (subscriptionId == null) {
+        await createEmptySubscription(onError: onError);
+        if (subscriptionId == null) return false;
+      }
+
+      final now = DateTime.now().toIso8601String();
+      print(
+        'Updating subscription $subscriptionId with boards: $tempSubscribedBoards',
+      );
+
+      await _databases.updateDocument(
+        databaseId: API.databaseId,
+        collectionId: API.collectionsSubscriptionsId,
+        documentId: subscriptionId!,
+        data: {'boards': tempSubscribedBoards, 'lastUpdate': now},
+      );
+
+      subscribedBoards = List<String>.from(tempSubscribedBoards);
+      print('Successfully updated subscription');
+
+      if (onUpdate != null) {
+        onUpdate(subscribedBoards);
+      }
+
+      return true;
+    } catch (err) {
+      print('Error updating boards: $err');
+      if (onError != null) {
+        onError(err);
+      }
+      return false;
+    }
   }
 
   Future<void> toggleBoard(
@@ -138,14 +209,12 @@ class BoardSelectionController {
       newList.add(boardId);
     }
 
-    // UI 업데이트 콜백 호출
     if (onUpdate != null) {
       onUpdate(newList);
     }
 
     try {
       if (subscriptionId == null) {
-        // 구독 문서가 없으면 생성 후 다시 시도
         await createEmptySubscription(onError: onError);
         await toggleBoard(boardId, onUpdate: onUpdate, onError: onError);
         return;
@@ -155,7 +224,6 @@ class BoardSelectionController {
 
       print('Updating subscription $subscriptionId with boards: $newList');
 
-      // 문서 업데이트
       await _databases.updateDocument(
         databaseId: API.databaseId,
         collectionId: API.collectionsSubscriptionsId,
@@ -164,6 +232,7 @@ class BoardSelectionController {
       );
 
       subscribedBoards = newList;
+      tempSubscribedBoards = List<String>.from(newList);
       print('Successfully updated subscription');
     } catch (err) {
       print('Error updating boards: $err');
@@ -171,6 +240,10 @@ class BoardSelectionController {
         onError(err);
       }
     }
+  }
+
+  void cancelChanges() {
+    tempSubscribedBoards = List<String>.from(subscribedBoards);
   }
 
   String getBoardName(String boardId) {
