@@ -27,52 +27,27 @@ messaging.onBackgroundMessage(async (message) => {
 // 알림 클릭 이벤트 처리 - 이 부분이 안드로이드 Chrome에서 필요한 핵심 기능
 self.addEventListener('notificationclick', (event) => {
   console.log('[SW] Notification clicked', event);
-  
-  // 알림 닫기
+
   event.notification.close();
-  
-  // 데이터 추출
-  const data = event.notification.data || {};
-  const link = data.link;
-  
-  // URL 결정
-  let url = '/';
-  if (link) {
-    // 외부 링크인 경우 직접 열기
-    if (link.startsWith('http')) {
-      url = link;
-    } else {
-      // 내부 경로인 경우 도메인 추가
-      url = self.location.origin + link;
-    }
-  }
-  
-  // 클라이언트 창 탐색 또는 새 창 열기
+
+  const urlToOpen = new URL('/', self.location.origin).href; // 항상 메인 도메인만 열도록 설정
+
   const promiseChain = clients.matchAll({
     type: 'window',
     includeUncontrolled: true
-  })
-  .then((windowClients) => {
-    // 열린 창이 있는지 확인
-    for (let i = 0; i < windowClients.length; i++) {
-      const client = windowClients[i];
-      
-      // 이미 열린 창이 있으면 포커스
-      if ('focus' in client) {
-        client.focus();
-        
-        if ('navigate' in client && url) {
-          return client.navigate(url);
-        }
-        return;
+  }).then(windowClients => {
+    for (const client of windowClients) {
+      // 열려 있는 클라이언트(창)가 이미 있으면 포커스 후 이동
+      if (client.url.startsWith(self.location.origin) && 'focus' in client) {
+        return client.focus();
       }
     }
-    
-    // 열린 창이 없으면 새 창 열기
+
+    // 없으면 새 창 열기
     if (clients.openWindow) {
-      return clients.openWindow(url);
+      return clients.openWindow(urlToOpen);
     }
   });
-  
+
   event.waitUntil(promiseChain);
 });
