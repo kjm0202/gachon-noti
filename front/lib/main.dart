@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:pwa_install/pwa_install.dart';
 
@@ -32,24 +33,32 @@ void main() async {
   final bool isPwa = PwaUtils.isPwaMode();
   Client? client;
 
-  // PWA 모드일 때만 Firebase와 Appwrite 초기화
-  if (isPwa) {
+  // PWA 모드이거나 디버그 모드일 때 Firebase와 Appwrite 초기화
+  if (isPwa || kDebugMode) {
     // Firebase 초기화
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
-    FlutterError.onError = (errorDetails) {
-      FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
-    };
-    PlatformDispatcher.instance.onError = (error, stack) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-      return true;
-    };
+    // 디버그 모드가 아닐 때만 Crashlytics 적용
+    if (!kDebugMode) {
+      FlutterError.onError = (errorDetails) {
+        FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+      };
+      PlatformDispatcher.instance.onError = (error, stack) {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+        return true;
+      };
+    }
 
     // Appwrite 클라이언트 초기화
     client = Client().setEndpoint(API.apiUrl).setProject(API.projectId);
   }
 
-  runApp(isPwa ? AppContentView(client: client!) : const PwaInstallView());
+  // 디버그 모드이거나 PWA 모드일 때 앱 콘텐츠 뷰 표시, 그 외에는 PWA 설치 화면 표시
+  runApp(
+    (isPwa || kDebugMode)
+        ? AppContentView(client: client!)
+        : const PwaInstallView(),
+  );
 }
