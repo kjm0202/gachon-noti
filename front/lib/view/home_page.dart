@@ -368,7 +368,7 @@ class _HomePageState extends State<HomePage> {
                   applicationName: '가천 알림이',
                   applicationVersion: packageInfo.version,
                   applicationIcon: Image.asset(
-                    'assets/icons/app_icon.png',
+                    'assets/icons/app_icon_transparent.png',
                     width: 48,
                     height: 48,
                   ),
