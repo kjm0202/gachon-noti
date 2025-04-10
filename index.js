@@ -204,9 +204,7 @@ async function sendPushNotifications(databases, databaseId, subscriptionsCollect
         body: title,
       },
       data: {
-        boardId: boardId,
         postLink: link,
-        createdAt: new Date().toISOString(),
       }
     };
 

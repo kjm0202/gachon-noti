@@ -21,6 +21,7 @@ messaging.onBackgroundMessage(async (message) => {
   console.log("[SW] Background message received", message);
   // 여기서는 알림을 직접 생성하지 않음
   // FCM이 자동으로 생성한 알림만 사용하여 중복 방지
+  const notificationData = message.data.postLink;
   return Promise.resolve();
 });
 
@@ -30,24 +31,32 @@ self.addEventListener('notificationclick', (event) => {
 
   event.notification.close();
 
-  const urlToOpen = new URL('/', self.location.origin).href; // 항상 메인 도메인만 열도록 설정
+  const postLink = event.notification.data.postLink;
+
+  const urlToOpen = postLink ? new URL(postLink) : new URL('/', self.location.origin);
 
   const promiseChain = clients.matchAll({
     type: 'window',
     includeUncontrolled: true
   }).then(windowClients => {
+    // 열린 창 찾기
+    let foundWindowClient = null;
     for (const client of windowClients) {
       // 열려 있는 클라이언트(창)가 이미 있으면 포커스 후 이동
       if (client.url.startsWith(self.location.origin) && 'focus' in client) {
-        return client.focus();
+        foundWindowClient = client;
+        break;
       }
     }
-
-    // 없으면 새 창 열기
-    if (clients.openWindow) {
-      return clients.openWindow(urlToOpen);
+    if (foundWindowClient) {
+      return foundWindowClient.focus().then((focusedClient) => {
+        if ("navigate" in focusedClient) {
+          return focusedClient.postMessage(urlToOpen.href);
+        }
+      });
+    } else if (clients.openWindow) {
+      return clients.openWindow(urlToOpen.href);
     }
   });
-
   event.waitUntil(promiseChain);
 });
