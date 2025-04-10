@@ -20,12 +20,7 @@ dependencies:
     git:
       url: https://github.com/jtmuller5/pwa_install.git
       ref: 82320a2
-  pwa_update_listener:
-    git:
-      url: https://github.com/kjm0202/pwa_update_listener.git
-      ref: master
   url_launcher: ^6.3.1
-  firebase_crashlytics: ^4.3.5
   flutter_svg: ^2.0.17
   flutter_auto_size_text: ^4.1.0
   package_info_plus: ^8.3.0
