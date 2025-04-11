@@ -370,8 +370,17 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             icon: Icon(Icons.textsms),
             onPressed: () {
-              web.Notification.requestPermission().toDart.then((_) {
-                web.Notification('test', web.NotificationOptions(body: 'test'));
+              web.Notification.requestPermission().toDart.then((status) {
+                if (status.toDart == 'granted') {
+                  web.ServiceWorkerContainer container =
+                      web.window.navigator.serviceWorker;
+                  container.ready.toDart.then((registration) {
+                    registration.showNotification(
+                      '테스트 알림',
+                      web.NotificationOptions(body: '테스트 메시지입니다.'),
+                    );
+                  });
+                }
               });
             },
           ),
