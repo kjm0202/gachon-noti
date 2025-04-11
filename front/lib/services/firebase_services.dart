@@ -71,8 +71,8 @@ class FirebaseService {
             print(
               'Message also contained a notification: ${message.notification}',
             );
-            showInAppNotification(message);
           }
+          showInAppNotification(message);
         });
 
         // 앱이 백그라운드에 있는 상태에서 알림 클릭으로 열렸을 때
