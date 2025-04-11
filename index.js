@@ -199,11 +199,13 @@ async function sendPushNotifications(databases, databaseId, subscriptionsCollect
 
     // FCM 메시지 기본 구성
     const baseMessage = {
-      notification: {
+      /* notification: {
         title: `[${getBoardName(boardId)}] 새 공지사항`,
         body: title,
-      },
+      }, */
       data: {
+        boardName: getBoardName(boardId),
+        title: title,
         postLink: link,
       }
     };
@@ -214,7 +216,7 @@ async function sendPushNotifications(databases, databaseId, subscriptionsCollect
       
       // 각 디바이스별로 개별 메시지 생성
       const messages = devices.map(device => ({
-        notification: baseMessage.notification,
+        // notification: baseMessage.notification,
         data: baseMessage.data,
         token: device.token
       }));

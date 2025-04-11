@@ -4,59 +4,74 @@ importScripts("https://www.gstatic.com/firebasejs/10.11.1/firebase-app-compat.js
 importScripts("https://www.gstatic.com/firebasejs/10.11.1/firebase-messaging-compat.js");
 
 firebase.initializeApp({
-    apiKey: 'AIzaSyAY2__3KRqGTiavmyJhVo35L1t0IqOlqYA',
-    appId: '1:1006219923383:web:341ae36a5cfd4c4371e232',
-    messagingSenderId: '1006219923383',
-    projectId: 'gachon-dorm-noti',
-    authDomain: 'gachon-dorm-noti.firebaseapp.com',
-    storageBucket: 'gachon-dorm-noti.firebasestorage.app',
-    measurementId: 'G-9V0X2ZYRZ7',
+  apiKey: 'AIzaSyAY2__3KRqGTiavmyJhVo35L1t0IqOlqYA',
+  appId: '1:1006219923383:web:341ae36a5cfd4c4371e232',
+  messagingSenderId: '1006219923383',
+  projectId: 'gachon-dorm-noti',
+  authDomain: 'gachon-dorm-noti.firebaseapp.com',
+  storageBucket: 'gachon-dorm-noti.firebasestorage.app',
+  measurementId: 'G-9V0X2ZYRZ7',
 });
 
 const messaging = firebase.messaging();
 
-// Flutter 앱에서 알림을 처리하므로 백그라운드 메시지 핸들러를 최소화
-// 알림 표시는 FCM 서버에서 직접 처리하도록 하고 여기서는 최소한의 처리만 수행
-messaging.onBackgroundMessage(async (message) => {
-  console.log("[SW] Background message received", message);
-  // 여기서는 알림을 직접 생성하지 않음
-  // FCM이 자동으로 생성한 알림만 사용하여 중복 방지
-  const notificationData = message.data.postLink;
-  return Promise.resolve();
+// 백그라운드 메시지 수신
+messaging.onBackgroundMessage(async (payload) => {
+  console.log("[SW] Background message received", payload);
+  const notificationTitle = "[" + payload.data.boardName + "] 새 공지";
+  const notificationOptions = {
+    body: payload.data.title,
+    icon: "/icons/Icon-192.png",
+    data: payload.data.postLink,
+  };
+  self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// 알림 클릭 이벤트 처리 - 이 부분이 안드로이드 Chrome에서 필요한 핵심 기능
+// 알림 클릭 이벤트 처리
 self.addEventListener('notificationclick', (event) => {
   console.log('[SW] Notification clicked', event);
 
   event.notification.close();
 
-  const postLink = event.notification.data.postLink;
-
+  const postLink = event.notification.data;
   const urlToOpen = postLink ? new URL(postLink) : new URL('/', self.location.origin);
 
-  const promiseChain = clients.matchAll({
-    type: 'window',
-    includeUncontrolled: true
-  }).then(windowClients => {
-    // 열린 창 찾기
-    let foundWindowClient = null;
-    for (const client of windowClients) {
-      // 열려 있는 클라이언트(창)가 이미 있으면 포커스 후 이동
-      if (client.url.startsWith(self.location.origin) && 'focus' in client) {
-        foundWindowClient = client;
-        break;
-      }
-    }
-    if (foundWindowClient) {
-      return foundWindowClient.focus().then((focusedClient) => {
-        if ("navigate" in focusedClient) {
-          return focusedClient.postMessage(urlToOpen.href);
+  // 비동기 작업을 수행하기 위한 메서드로 아래 Promise가 완료될 때까지 이벤트 수명을 연장
+  event.waitUntil(
+    clients // 서비스 워커에서 현재 제어하는 클라이언트 목록 
+      .matchAll({
+        type: "window",
+        includeUncontrolled: true, // 제어하고 있지 않은 클라이언트까지 포함 (백그라운드)
+      })
+      .then((windowClients) => {
+        let foundWindowClient = null;
+        // 이미 열려 있는 창에서 서비스와 관련된 URL을 찾기 위한 로직 추가
+        for (let i = 0; i < windowClients.length; i++) {
+          const client = windowClients[i];
+
+          if (
+            (new URL(client.url).hostname.includes("gachon")) &&
+            "focus" in client
+          ) {
+            foundWindowClient = client;
+            break;
+          }
         }
-      });
-    } else if (clients.openWindow) {
-      return clients.openWindow(urlToOpen.href);
-    }
-  });
-  event.waitUntil(promiseChain);
+
+        // 만약 백그라운드에 해당 서비스가 있다면 
+        if (foundWindowClient) {
+          // 해당 탭을 focus하여 이동시킴
+          return foundWindowClient.focus().then((focusedClient) => {
+            if ("navigate" in focusedClient) {
+              // 원하는 주소로 이동
+              focusedClient.postMessage(urlToOpen.href);
+            }
+          });
+
+          // 그게 아니라면 새창을 열어서 원하는 URL로 이동시킴 
+        } else if (clients.openWindow) {
+          return clients.openWindow(urlToOpen.href);
+        }
+      }),
+  );
 });
