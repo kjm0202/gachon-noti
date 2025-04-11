@@ -286,7 +286,7 @@ class _HomePageState extends State<HomePage> {
 
       web.NotificationOptions options = web.NotificationOptions(
         body: body,
-        data: {'url': postLink}.jsify(),
+        data: postLink.toJS,
       );
 
       if (web.Notification.permission == 'granted') {
@@ -297,7 +297,7 @@ class _HomePageState extends State<HomePage> {
         });
       } else {
         web.Notification.requestPermission().toDart.then((status) {
-          if (status == 'granted') {
+          if (status.toDart == 'granted') {
             web.ServiceWorkerContainer container =
                 web.window.navigator.serviceWorker;
             container.ready.toDart.then((registration) {
