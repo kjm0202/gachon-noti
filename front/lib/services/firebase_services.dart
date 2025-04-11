@@ -56,6 +56,12 @@ class FirebaseService {
           }
         });
 
+        FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+
         // 앱이 열려 있을 때 수신된 메시지 처리
         FirebaseMessaging.onMessage.listen((RemoteMessage message) {
           print('Got a message whilst in the foreground!');

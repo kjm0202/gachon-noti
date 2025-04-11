@@ -223,7 +223,7 @@ async function sendPushNotifications(databases, databaseId, subscriptionsCollect
       
       try {
         // 메시지 전송
-        const response = await admin.messaging().sendEach(messages);
+        const response = await admin.messaging().sendEachAsync(messages);
         console.log(`Notifications for user ${userId}: ${response.successCount} successes, ${response.failureCount} failures`);
         
         // 실패한 토큰 처리

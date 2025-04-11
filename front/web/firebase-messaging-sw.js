@@ -50,7 +50,7 @@ self.addEventListener('notificationclick', (event) => {
           const client = windowClients[i];
 
           if (
-            (new URL(client.url).hostname.includes("gachon")) &&
+            (new URL(client.url).hostname.includes("gachon-noti.ven0m.kr")) &&
             "focus" in client
           ) {
             foundWindowClient = client;

@@ -1,3 +1,5 @@
+import 'dart:js_interop';
+
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -242,17 +244,11 @@ class _HomePageState extends State<HomePage> {
                   AutoSizeText(
                     '알림 권한이 거부되어 알림을 받을 수 없어요.',
                     style: Theme.of(context).textTheme.bodyLarge,
-                    textAlign: TextAlign.center,
                   ),
                   AutoSizeText(
-                    '실수로 거부를 누르셨다면, ',
+                    '실수로 거부를 누르셨다면, 앱 삭제 후 다시 설치하여 진행해주세요.'.wrapped,
                     style: Theme.of(context).textTheme.bodyLarge,
-                    textAlign: TextAlign.center,
-                  ),
-                  AutoSizeText(
-                    '앱 삭제 후 다시 설치하여 진행해주세요.',
-                    style: Theme.of(context).textTheme.bodyLarge,
-                    textAlign: TextAlign.center,
+                    maxLines: 2,
                   ),
                 ],
               ),
@@ -275,36 +271,61 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showInAppNotification(RemoteMessage message) {
-    if (!mounted) return;
+    if (!mounted) {
+      print('not mounted');
+      return;
+    }
 
-    final notification = message.notification;
+    final data = message.data;
+    print("포그라운드 메시지 수신: $data");
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(notification?.title ?? '새 알림'),
-        action: SnackBarAction(
-          label: '보기',
-          onPressed: () {
-            _handleNotificationClick(message);
-          },
-        ),
-        duration: Duration(seconds: 5),
-      ),
-    );
+    if (data != null) {
+      final String postLink = data['postLink'];
+      final String title = '[${data['boardName']}] 새 공지';
+      final String body = data['title'];
+
+      web.NotificationOptions options = web.NotificationOptions(
+        body: body,
+        data: {'url': postLink}.jsify(),
+      );
+
+      if (web.Notification.permission == 'granted') {
+        web.ServiceWorkerContainer container =
+            web.window.navigator.serviceWorker;
+        container.ready.toDart.then((registration) {
+          registration.showNotification(title, options);
+        });
+      } else {
+        web.Notification.requestPermission().toDart.then((status) {
+          if (status == 'granted') {
+            web.ServiceWorkerContainer container =
+                web.window.navigator.serviceWorker;
+            container.ready.toDart.then((registration) {
+              registration.showNotification(title, options);
+            });
+          }
+        });
+      }
+    }
   }
 
   void _handleNotificationClick(RemoteMessage message) {
+    print('handleNotificationClick');
     final data = message.data;
-    final String? boardId = data['boardId'];
+    final String? postLink = data['postLink'];
 
     // 알림을 통해 특정 게시판이나 게시글로 이동
     setState(() {
       _currentIndex = 1; // 전체 게시물 탭으로 전환
     });
+
+    if (postLink != null) {
+      web.window.location.href = postLink;
+    }
   }
 
   Future<void> _logout() async {
-    await showAdaptiveDialog(
+    await showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
@@ -346,6 +367,14 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: Text(_currentIndex == 0 ? '구독 설정' : '전체 게시물'),
         actions: [
+          IconButton(
+            icon: Icon(Icons.textsms),
+            onPressed: () {
+              web.Notification.requestPermission().toDart.then((_) {
+                web.Notification('test', web.NotificationOptions(body: 'test'));
+              });
+            },
+          ),
           // 알림 권한이 거부된 경우 경고 아이콘 표시
           if (_isNotificationDenied)
             IconButton(
