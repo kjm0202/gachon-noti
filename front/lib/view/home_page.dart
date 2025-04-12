@@ -34,6 +34,7 @@ class _HomePageState extends State<HomePage> {
   Timer? _permissionCheckTimer; // 권한 확인 타이머
   AuthorizationStatus? _lastAuthStatus; // 마지막으로 확인한 권한 상태
   DateTime? _lastDialogTime; // 마지막 다이얼로그 표시 시간
+  web.ServiceWorkerRegistration? _notificationServiceWorker; // 알림용 서비스 워커
 
   @override
   void initState() {
@@ -284,6 +285,7 @@ class _HomePageState extends State<HomePage> {
       final String title = '[${data['boardName']}] 새 공지';
       final String body = data['title'];
 
+      // NotificationOptions 생성
       web.NotificationOptions options = web.NotificationOptions(
         body: body,
         data: postLink.toJS,
@@ -294,6 +296,7 @@ class _HomePageState extends State<HomePage> {
             web.window.navigator.serviceWorker;
         container.ready.toDart.then((registration) {
           registration.showNotification(title, options);
+          print('알림 표시: $title - $body (링크: $postLink)');
         });
       } else {
         web.Notification.requestPermission().toDart.then((status) {
@@ -302,6 +305,7 @@ class _HomePageState extends State<HomePage> {
                 web.window.navigator.serviceWorker;
             container.ready.toDart.then((registration) {
               registration.showNotification(title, options);
+              print('알림 표시: $title - $body (링크: $postLink)');
             });
           }
         });
@@ -372,13 +376,19 @@ class _HomePageState extends State<HomePage> {
             onPressed: () {
               web.Notification.requestPermission().toDart.then((status) {
                 if (status.toDart == 'granted') {
+                  final testLink = 'https://www.gachon.ac.kr/kor/index.do';
+
+                  // 알림 옵션 생성
+                  web.NotificationOptions options = web.NotificationOptions(
+                    body: '테스트 메시지입니다.',
+                    data: testLink.toJS,
+                  );
+
                   web.ServiceWorkerContainer container =
                       web.window.navigator.serviceWorker;
                   container.ready.toDart.then((registration) {
-                    registration.showNotification(
-                      '테스트 알림',
-                      web.NotificationOptions(body: '테스트 메시지입니다.'),
-                    );
+                    registration.showNotification('테스트 알림', options);
+                    print('테스트 알림이 표시되었습니다. (링크: $testLink)');
                   });
                 }
               });
