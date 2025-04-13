@@ -285,7 +285,10 @@ class _HomePageState extends State<HomePage> {
       final String title = '[${data['boardName']}] 새 공지';
       final String body = data['title'];
 
-      // NotificationOptions 생성
+      print("URL 설정: $postLink");
+
+      // 일부 브라우저에서는 문자열이 아닌 객체로 data 전달이 안될 수 있음
+      // 단순한 URL 문자열로 전달
       web.NotificationOptions options = web.NotificationOptions(
         body: body,
         data: postLink.toJS,
@@ -378,7 +381,9 @@ class _HomePageState extends State<HomePage> {
                 if (status.toDart == 'granted') {
                   final testLink = 'https://www.gachon.ac.kr/kor/index.do';
 
-                  // 알림 옵션 생성
+                  print("테스트 URL 설정: $testLink");
+
+                  // 알림 옵션 생성 - 단순 URL 문자열로 전달
                   web.NotificationOptions options = web.NotificationOptions(
                     body: '테스트 메시지입니다.',
                     data: testLink.toJS,

@@ -80,83 +80,19 @@
   
   <!-- 알림용 서비스 워커 등록 -->
   <script>
-    // Flutter 앱과 통신하기 위한 글로벌 객체
-    window.appState = {
-      // 알림 클릭 핸들러
-      handleNotificationClick: function(url) {
-        console.log('알림 클릭 처리:', url);
-        
-        // 현재 URL을 기반으로 패스에 추가 파라미터 붙이기
-        const currentUrl = new URL(window.location.href);
-        currentUrl.searchParams.set('notification', 'true');
-        currentUrl.searchParams.set('url', url);
-        
-        // 새 URL로 페이지 이동 또는 페이지 새로고침
-        if (document.hasFocus()) {
-          // 앱이 포그라운드 상태면 URL 파라미터만 변경
-          window.history.pushState({}, '', currentUrl.toString());
-          // Flutter 앱이 URL 변경을 감지할 수 있도록 커스텀 이벤트 발생
-          window.dispatchEvent(new CustomEvent('flutter.notificationClick', { detail: { url: url } }));
-        } else {
-          // 앱이 백그라운드 상태면 해당 URL로 이동
-          window.location.href = url;
-        }
-      }
-    };
-    
     // 서비스 워커 등록
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
+        // 명시적인 경로 지정 (루트 경로 사용)
         navigator.serviceWorker.register('/notification-service-worker.js')
           .then(function(registration) {
             console.log('알림 서비스 워커 등록 성공:', registration.scope);
-            
-            // 서비스 워커로부터 메시지 수신 리스너
-            navigator.serviceWorker.addEventListener('message', function(event) {
-              console.log('서비스 워커로부터 메시지 수신:', event.data);
-              
-              // 알림 클릭 메시지 처리
-              if (event.data && event.data.type === 'NOTIFICATION_CLICK') {
-                console.log('알림 클릭 이벤트 처리:', event.data.url);
-                
-                // URL로 이동 또는 탭 전환 등의 처리
-                if (window.appState && typeof window.appState.handleNotificationClick === 'function') {
-                  window.appState.handleNotificationClick(event.data.url);
-                }
-              }
-            });
           })
           .catch(function(error) {
             console.error('알림 서비스 워커 등록 실패:', error);
           });
       });
     }
-    
-    // URL 파라미터 체크하여 알림 클릭으로 열린 경우 처리
-    function checkNotificationParams() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const isFromNotification = urlParams.get('notification') === 'true';
-      const notificationUrl = urlParams.get('url');
-      
-      if (isFromNotification && notificationUrl) {
-        console.log('알림을 통해 열린 페이지 감지:', notificationUrl);
-        // 파라미터 제거 (히스토리는 유지)
-        const cleanUrl = new URL(window.location.href);
-        cleanUrl.searchParams.delete('notification');
-        cleanUrl.searchParams.delete('url');
-        window.history.replaceState({}, '', cleanUrl.toString());
-        
-        // Flutter 앱이 인식할 수 있도록 지연된 이벤트 발생
-        setTimeout(function() {
-          window.dispatchEvent(new CustomEvent('flutter.notificationClick', { 
-            detail: { url: notificationUrl } 
-          }));
-        }, 1000); // 1초 후 이벤트 발생 (Flutter 앱이 초기화될 시간 확보)
-      }
-    }
-    
-    // 페이지 로드 시 알림 파라미터 체크
-    window.addEventListener('load', checkNotificationParams);
   </script>
 </body>
 </html>

@@ -18,49 +18,51 @@ self.addEventListener('notificationclick', (event) => {
   // 알림 닫기
   event.notification.close();
   
-  // 알림 데이터(URL) 가져오기
-  const url = event.notification.data;
+  // URL 추출 시도
+  let url = null;
   
-  if (url) {
-    console.log('이동할 URL:', url);
+  try {
+    console.log('알림 데이터 타입:', typeof event.notification.data);
+    console.log('알림 데이터 값:', event.notification.data);
     
-    // 클라이언트 창 제어
-    event.waitUntil(
-      clients.matchAll({type: 'window'}).then((clientList) => {
-        // 이미 열려있는 창이 있는지 확인
-        for (let i = 0; i < clientList.length; i++) {
-          const client = clientList[i];
-          
-          // 현재 사이트의 창이 있으면 포커스하고 메시지 전송
-          if ('focus' in client) {
-            client.focus();
-            
-            // 클라이언트에 메시지 전송 (handleNotificationClick 함수 호출)
-            client.postMessage({
-              type: 'NOTIFICATION_CLICK',
-              url: url
-            });
-            return;
-          }
-        }
-        
-        // 열린 창이 없으면 새 창 열기 (URL 파라미터 추가로 알림 처리를 위한 정보 전달)
-        if (clients.openWindow) {
-          // URL이 상대 경로인 경우 처리
-          if (url.startsWith('http')) {
-            // 외부 URL은 그대로 사용
-            return clients.openWindow(url);
-          } else {
-            // 상대 경로인 경우 현재 origin에 notification 파라미터 추가
-            const appUrl = new URL(self.registration.scope);
-            appUrl.searchParams.set('notification', 'true');
-            appUrl.searchParams.set('url', url);
-            return clients.openWindow(appUrl.toString());
-          }
-        }
-      })
-    );
+    // 문자열인 경우 직접 사용
+    if (typeof event.notification.data === 'string') {
+      url = event.notification.data;
+    } 
+    // 객체인 경우 toString 호출
+    else if (event.notification.data) {
+      url = event.notification.data.toString();
+    }
+    
+    // URL 유효성 검사
+    if (!url || url === 'undefined' || url === '[object Object]') {
+      url = 'https://www.gachon.ac.kr/kor/index.do'; // 기본 URL
+    }
+    
+    // 상대 URL을 절대 URL로 변환
+    if (url && !url.startsWith('http')) {
+      url = self.registration.scope + url.replace(/^\//, '');
+    }
+    
+    console.log('최종 URL:', url);
+  } catch (error) {
+    console.error('URL 처리 중 오류:', error);
+    url = 'https://www.gachon.ac.kr/kor/index.do'; // 오류 시 기본 URL
   }
+  
+  // URL 열기
+  event.waitUntil(
+    // 별도의 처리 없이 바로 URL 열기
+    self.clients.openWindow(url)
+      .then(windowClient => {
+        console.log('창이 열렸습니다:', windowClient);
+      })
+      .catch(error => {
+        console.error('창 열기 실패:', error);
+        // 실패 시 기본 URL로 다시 시도
+        return self.clients.openWindow('https://www.gachon.ac.kr/kor/index.do');
+      })
+  );
 });
 
 // 푸시 이벤트 리스너 (백그라운드 푸시 알림용)
@@ -75,8 +77,6 @@ self.addEventListener('push', (event) => {
       const notificationOptions = {
         body: data.body || '새 알림이 있습니다.',
         data: data.postLink,
-        icon: '/icons/app_icon.png',
-        badge: '/icons/app_icon.png',
         requireInteraction: true
       };
       
