@@ -19,13 +19,51 @@
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="가천대학교 공지사항 알림 서비스">
+  <!-- 뷰포트 메타 태그 수정 - 모바일에서 일관된 크기를 위해 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
   <!-- CSS 로더 스타일 추가 -->
   <style>
+    /* 다크 모드 감지 변수 정의 */
+    :root {
+      --loader-bg: #979794;
+      --loader-page-bg: #f5f5f5;
+      --loader-content-bg: #ddd;
+      --loader-page-right-bg: #fff;
+      --app-bg: rgba(255, 255, 255, 0.8);
+      --text-color: #333333; /* 라이트 모드 텍스트 색상 */
+    }
+
+    /* 다크 모드 변수 재정의 */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --loader-bg: #37383d;
+        --loader-page-bg: #2c2c2c; /* 책 페이지 배경 색상을 약간 더 밝게 */
+        --loader-content-bg: #5a5a5a; /* 책 내용(텍스트 줄) 색상을 더 밝게 */
+        --loader-page-right-bg: #3a3a3a; /* 오른쪽 페이지 색상도 약간 더 밝게 */
+        --app-bg: rgba(18, 18, 18, 0.9);
+        --text-color: #e0e0e0; /* 다크 모드 텍스트 색상 */
+      }
+      
+      body {
+        background-color: #121212; /* 머티리얼 다크 테마 배경색 */
+        color: #e0e0e0;
+      }
+    }
+
+    /* 전체 페이지 스타일링 - 확대/축소 방지 */
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
     .loader {
       width: 200px;
       height: 140px;
-      background: #979794;
+      background: var(--loader-bg);
       box-sizing: border-box;
       position: relative;
       border-radius: 8px;
@@ -40,14 +78,14 @@
       top: 10px;
       bottom: 10px;
       border-radius: 8px;
-      background: #f5f5f5 no-repeat;
+      background: var(--loader-page-bg) no-repeat;
       background-size: 60px 10px;
-      background-image: linear-gradient(#ddd 100px, transparent 0),
-                 linear-gradient(#ddd 100px, transparent 0), 
-                 linear-gradient(#ddd 100px, transparent 0), 
-                 linear-gradient(#ddd 100px, transparent 0), 
-                 linear-gradient(#ddd 100px, transparent 0), 
-                 linear-gradient(#ddd 100px, transparent 0);
+      background-image: linear-gradient(var(--loader-content-bg) 100px, transparent 0),
+                 linear-gradient(var(--loader-content-bg) 100px, transparent 0), 
+                 linear-gradient(var(--loader-content-bg) 100px, transparent 0), 
+                 linear-gradient(var(--loader-content-bg) 100px, transparent 0), 
+                 linear-gradient(var(--loader-content-bg) 100px, transparent 0), 
+                 linear-gradient(var(--loader-content-bg) 100px, transparent 0);
       background-position: 15px 30px, 15px 60px, 15px 90px, 
                  105px 30px, 105px 60px, 105px 90px;
       box-shadow: 0 0 10px rgba(0,0,0,0.25);
@@ -61,11 +99,11 @@
       top: 10px;
       bottom: 10px;
       border-radius: 8px;
-      background: #fff no-repeat;
+      background: var(--loader-page-right-bg) no-repeat;
       background-size: 60px 10px;
-      background-image: linear-gradient(#ddd 100px, transparent 0), 
-                 linear-gradient(#ddd 100px, transparent 0), 
-                 linear-gradient(#ddd 100px, transparent 0);
+      background-image: linear-gradient(var(--loader-content-bg) 100px, transparent 0), 
+                 linear-gradient(var(--loader-content-bg) 100px, transparent 0), 
+                 linear-gradient(var(--loader-content-bg) 100px, transparent 0);
       background-position: 50% 30px, 50% 60px, 50% 90px;
       transform: rotateY(0deg);
       transform-origin: left center;
@@ -78,9 +116,27 @@
       }
     }
     
+    /* 로딩 텍스트 스타일 */
+    .loading-text {
+      margin-top: 20px;
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      font-size: 14px;
+      color: var(--text-color);
+      text-align: center;
+      font-weight: 500;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; }
+      100% { opacity: 0.6; }
+    }
+    
     /* 로더 중앙 배치를 위한 스타일 */
     #loader-container {
       display: flex;
+      flex-direction: column; /* 세로 방향으로 요소 배치 */
       justify-content: center;
       align-items: center;
       height: 100vh;
@@ -88,13 +144,16 @@
       position: fixed;
       top: 0;
       left: 0;
-      background: rgba(255, 255, 255, 0.8);
+      background: var(--app-bg);
       z-index: 9999;
+      /* 추가 - 부드러운 전환 효과 */
+      transition: opacity 0.3s ease;
     }
   </style>
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="가천 알림이">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
@@ -115,6 +174,7 @@
   <!-- 로더 추가 -->
   <div id="loader-container">
     <div class="loader"></div>
+    <div class="loading-text">로드 중...(최대 5초 소요)</div>
   </div>
   
   <!-- Capture PWA install prompt event -->
@@ -148,11 +208,14 @@
     }
   }
 
-  // Flutter 앱이 로드되면 로더 숨기기
+  // Flutter 앱이 로드되면 로더 숨기기 - 서서히 사라지게 수정
   window.addEventListener('flutter-first-frame', function() {
     var loader = document.getElementById('loader-container');
     if (loader) {
-      loader.style.display = 'none';
+      loader.style.opacity = '0';
+      setTimeout(function() {
+        loader.style.display = 'none';
+      }, 300);
     }
   });
 </script>
