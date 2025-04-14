@@ -20,6 +20,79 @@
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="가천대학교 공지사항 알림 서비스">
 
+  <!-- CSS 로더 스타일 추가 -->
+  <style>
+    .loader {
+      width: 200px;
+      height: 140px;
+      background: #979794;
+      box-sizing: border-box;
+      position: relative;
+      border-radius: 8px;
+      perspective: 1000px;
+    }
+
+    .loader:before {
+      content: '';
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      top: 10px;
+      bottom: 10px;
+      border-radius: 8px;
+      background: #f5f5f5 no-repeat;
+      background-size: 60px 10px;
+      background-image: linear-gradient(#ddd 100px, transparent 0),
+                 linear-gradient(#ddd 100px, transparent 0), 
+                 linear-gradient(#ddd 100px, transparent 0), 
+                 linear-gradient(#ddd 100px, transparent 0), 
+                 linear-gradient(#ddd 100px, transparent 0), 
+                 linear-gradient(#ddd 100px, transparent 0);
+      background-position: 15px 30px, 15px 60px, 15px 90px, 
+                 105px 30px, 105px 60px, 105px 90px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.25);
+    }
+    
+    .loader:after {
+      content: '';
+      position: absolute;
+      width: calc(50% - 10px);
+      right: 10px;
+      top: 10px;
+      bottom: 10px;
+      border-radius: 8px;
+      background: #fff no-repeat;
+      background-size: 60px 10px;
+      background-image: linear-gradient(#ddd 100px, transparent 0), 
+                 linear-gradient(#ddd 100px, transparent 0), 
+                 linear-gradient(#ddd 100px, transparent 0);
+      background-position: 50% 30px, 50% 60px, 50% 90px;
+      transform: rotateY(0deg);
+      transform-origin: left center;
+      animation: paging 1s linear infinite;
+    }
+
+    @keyframes paging {
+      to {
+        transform: rotateY(-180deg);
+      }
+    }
+    
+    /* 로더 중앙 배치를 위한 스타일 */
+    #loader-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      width: 100%;
+      position: fixed;
+      top: 0;
+      left: 0;
+      background: rgba(255, 255, 255, 0.8);
+      z-index: 9999;
+    }
+  </style>
+
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -35,8 +108,15 @@
 
   <title>가천 알림이</title>
   <link rel="manifest" href="manifest.json">
+
+  
 </head>
 <body>
+  <!-- 로더 추가 -->
+  <div id="loader-container">
+    <div class="loader"></div>
+  </div>
+  
   <!-- Capture PWA install prompt event -->
 <script>
   let deferredPrompt;
@@ -67,6 +147,14 @@
       window.appLaunchedInBrowser();
     }
   }
+
+  // Flutter 앱이 로드되면 로더 숨기기
+  window.addEventListener('flutter-first-frame', function() {
+    var loader = document.getElementById('loader-container');
+    if (loader) {
+      loader.style.display = 'none';
+    }
+  });
 </script>
   <script src="flutter_bootstrap.js" async>
     if ('serviceWorker' in navigator) {
