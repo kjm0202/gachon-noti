@@ -155,28 +155,26 @@ class _PostsViewState extends State<PostsView> {
       scrollDirection: Axis.horizontal,
       padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: Row(
-        children:
-            availableTags.map((tag) {
-              final isSelected = _controller.selectedTagFilter == tag;
-              final boardName =
-                  tag == 'all' ? '전체' : _controller.getBoardName(tag);
+        children: availableTags.map((tag) {
+          final isSelected = _controller.selectedTagFilter == tag;
+          final boardName = tag == 'all' ? '전체' : _controller.getBoardName(tag);
 
-              return Padding(
-                padding: EdgeInsets.only(right: 8),
-                child: ChoiceChip(
-                  label: Text(boardName),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    if (selected) {
-                      _onTagFilterChanged(tag);
-                    }
-                  },
-                  backgroundColor:
-                      Theme.of(context).colorScheme.surfaceContainerHighest,
-                  selectedColor: Theme.of(context).colorScheme.primaryContainer,
-                ),
-              );
-            }).toList(),
+          return Padding(
+            padding: EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              label: Text(boardName),
+              selected: isSelected,
+              onSelected: (selected) {
+                if (selected) {
+                  _onTagFilterChanged(tag);
+                }
+              },
+              backgroundColor:
+                  Theme.of(context).colorScheme.surfaceContainerHighest,
+              selectedColor: Theme.of(context).colorScheme.primaryContainer,
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -191,15 +189,14 @@ class _PostsViewState extends State<PostsView> {
         decoration: InputDecoration(
           hintText: '제목으로 검색',
           prefixIcon: Icon(Icons.search),
-          suffixIcon:
-              _searchController.text.isNotEmpty
-                  ? IconButton(
-                    icon: Icon(Icons.clear),
-                    onPressed: () {
-                      _searchController.clear();
-                    },
-                  )
-                  : null,
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  icon: Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                  },
+                )
+              : null,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(30),
             borderSide: BorderSide.none,
@@ -207,7 +204,7 @@ class _PostsViewState extends State<PostsView> {
           filled: true,
           fillColor: Theme.of(
             context,
-          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          ).colorScheme.surfaceContainerHighest.withOpacity(0.5),
           contentPadding: EdgeInsets.symmetric(vertical: 0),
         ),
         textInputAction: TextInputAction.search,
@@ -316,10 +313,9 @@ class _PostsViewState extends State<PostsView> {
                                       vertical: 3,
                                     ),
                                     decoration: BoxDecoration(
-                                      color:
-                                          Theme.of(
-                                            context,
-                                          ).colorScheme.primaryContainer,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primaryContainer,
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
@@ -327,10 +323,9 @@ class _PostsViewState extends State<PostsView> {
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
-                                        color:
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.onPrimaryContainer,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onPrimaryContainer,
                                       ),
                                     ),
                                   ),
