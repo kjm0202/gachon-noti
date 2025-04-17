@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:flutter_auto_size_text/flutter_auto_size_text.dart';
+import 'package:gachon_noti_front/utils/alternative_text_style.dart';
 import 'package:gachon_noti_front/utils/korean_wrapper.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
@@ -234,7 +235,7 @@ class _PostsViewState extends State<PostsView> {
                   ? '구독 중인 게시판이 없습니다.\n구독 설정에서 게시판을 선택해주세요.'
                   : '게시물이 없습니다.',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium,
+              style: AltTextStyle.titleMedium,
             ),
           ],
         ),
@@ -257,7 +258,7 @@ class _PostsViewState extends State<PostsView> {
                   Text(
                     '검색 결과가 없습니다.',
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: AltTextStyle.titleMedium,
                   ),
                 ],
               ),
@@ -352,12 +353,9 @@ class _PostsViewState extends State<PostsView> {
                                       child: AutoSizeText(
                                         (post['title'] as String?)?.wrapped ??
                                             '(제목 없음)',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w500,
-                                          height: 1.3,
-                                        ),
+                                        style: AltTextStyle.bodyLarge,
                                         maxLines: 1,
+                                        minFontSize: 14,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),

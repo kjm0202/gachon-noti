@@ -1,9 +1,26 @@
 import "package:flutter/material.dart";
+import 'utils/alternative_text_style.dart';
 
 class MaterialTheme {
-  final TextTheme textTheme;
+  const MaterialTheme();
 
-  const MaterialTheme(this.textTheme);
+  static final TextTheme _appTextTheme = TextTheme(
+    displayLarge: AltTextStyle.displayLarge,
+    displayMedium: AltTextStyle.displayMedium,
+    displaySmall: AltTextStyle.displaySmall,
+    headlineLarge: AltTextStyle.headlineLarge,
+    headlineMedium: AltTextStyle.headlineMedium,
+    headlineSmall: AltTextStyle.headlineSmall,
+    titleLarge: AltTextStyle.titleLarge,
+    titleMedium: AltTextStyle.titleMedium,
+    titleSmall: AltTextStyle.titleSmall,
+    bodyLarge: AltTextStyle.bodyLarge,
+    bodyMedium: AltTextStyle.bodyMedium,
+    bodySmall: AltTextStyle.bodySmall,
+    labelLarge: AltTextStyle.labelLarge,
+    labelMedium: AltTextStyle.labelMedium,
+    labelSmall: AltTextStyle.labelSmall,
+  );
 
   static ColorScheme lightScheme() {
     return const ColorScheme(
@@ -336,18 +353,17 @@ class MaterialTheme {
   }
 
   ThemeData theme(ColorScheme colorScheme) => ThemeData(
-    useMaterial3: true,
-    brightness: colorScheme.brightness,
-    colorScheme: colorScheme,
-    textTheme: textTheme.apply(
-      bodyColor: colorScheme.onSurface,
-      displayColor: colorScheme.onSurface,
-      fontFamily: 'PretendardVariable',
-    ),
-    fontFamily: 'PretendardVariable',
-    scaffoldBackgroundColor: colorScheme.surface,
-    canvasColor: colorScheme.surface,
-  );
+        useMaterial3: true,
+        brightness: colorScheme.brightness,
+        colorScheme: colorScheme,
+        textTheme: _appTextTheme.apply(
+          bodyColor: colorScheme.onSurface,
+          displayColor: colorScheme.onSurface,
+        ),
+        fontFamily: 'PretendardVariable',
+        scaffoldBackgroundColor: colorScheme.surface,
+        canvasColor: colorScheme.surface,
+      );
 
   List<ExtendedColor> get extendedColors => [];
 }

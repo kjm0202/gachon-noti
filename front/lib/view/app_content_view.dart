@@ -89,7 +89,7 @@ class _AppContentViewState extends State<AppContentView> {
 
   @override
   Widget build(BuildContext context) {
-    final materialTheme = MaterialTheme(Theme.of(context).textTheme);
+    final materialTheme = MaterialTheme();
 
     return MaterialApp(
       title: '가천 알림이',
@@ -102,16 +102,15 @@ class _AppContentViewState extends State<AppContentView> {
 
   Widget _buildMainContent() {
     return Scaffold(
-      body:
-          _authService.isLoggedIn
-              ? HomePage(client: widget.client)
-              : LoginPage(
-                onLoginSuccess: () {
-                  setState(() {}); // 로그인 후 화면 갱신
-                  // 로그인 성공 후 업데이트 확인
-                  _checkForUpdates();
-                },
-              ),
+      body: _authService.isLoggedIn
+          ? HomePage(client: widget.client)
+          : LoginPage(
+              onLoginSuccess: () {
+                setState(() {}); // 로그인 후 화면 갱신
+                // 로그인 성공 후 업데이트 확인
+                _checkForUpdates();
+              },
+            ),
     );
   }
 

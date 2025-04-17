@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_auto_size_text/flutter_auto_size_text.dart';
+import 'package:gachon_noti_front/utils/alternative_text_style.dart';
 import 'package:web/web.dart' as web;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:async'; // Timer 사용을 위한 import 추가
@@ -174,21 +175,20 @@ class _HomePageState extends State<HomePage> {
       await showDialog(
         context: context,
         barrierDismissible: false,
-        builder:
-            (context) => AlertDialog(
-              title: Text('알림 권한 요청'),
-              content: Text('\'확인\' 버튼을 누른 뒤 나오는 팝업에서 알림 권한을 허용해주세요.'.wrapped),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    // 권한 요청 직후 상태 변경 감지 시작
-                    _requestNotificationPermission();
-                  },
-                  child: Text('확인'),
-                ),
-              ],
+        builder: (context) => AlertDialog(
+          title: Text('알림 권한 요청'),
+          content: Text('\'확인\' 버튼을 누른 뒤 나오는 팝업에서 알림 권한을 허용해주세요.'.wrapped),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                // 권한 요청 직후 상태 변경 감지 시작
+                _requestNotificationPermission();
+              },
+              child: Text('확인'),
             ),
+          ],
+        ),
       );
     }
 
@@ -236,32 +236,31 @@ class _HomePageState extends State<HomePage> {
     try {
       await showDialog(
         context: context,
-        builder:
-            (context) => AlertDialog(
-              title: Text('⚠️ 알림 권한 거부됨'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AutoSizeText(
-                    '알림 권한이 거부되어 알림을 받을 수 없어요.',
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                  AutoSizeText(
-                    '실수로 거부를 누르셨다면, 앱 삭제 후 다시 설치하여 진행해주세요.'.wrapped,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                    maxLines: 2,
-                  ),
-                ],
+        builder: (context) => AlertDialog(
+          title: Text('⚠️ 알림 권한 거부됨'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AutoSizeText(
+                '알림 권한이 거부되어 알림을 받을 수 없어요.',
+                style: AltTextStyle.bodyLarge,
               ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: Text('확인'),
-                ),
-              ],
+              AutoSizeText(
+                '실수로 거부를 누르셨다면, 앱 삭제 후 다시 설치하여 진행해주세요.'.wrapped,
+                style: AltTextStyle.bodyLarge,
+                maxLines: 2,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('확인'),
             ),
+          ],
+        ),
       );
     } finally {
       // 다이얼로그가 닫히면 상태 업데이트
@@ -334,32 +333,31 @@ class _HomePageState extends State<HomePage> {
   Future<void> _logout() async {
     await showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text('로그아웃'),
-            content: Text('로그아웃 하시겠습니까?'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text('취소'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  Navigator.pop(context); // 다이얼로그 닫기
-
-                  // 로그아웃 처리
-                  await _authService.logout();
-
-                  // 웹 브라우저 새로고침을 통해 앱 전체 리로드
-                  // AppContentView가 다시 로드되며 isLoggedIn 상태 확인
-                  web.window.location.reload();
-                },
-                child: Text('확인'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: Text('로그아웃'),
+        content: Text('로그아웃 하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: Text('취소'),
           ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context); // 다이얼로그 닫기
+
+              // 로그아웃 처리
+              await _authService.logout();
+
+              // 웹 브라우저 새로고침을 통해 앱 전체 리로드
+              // AppContentView가 다시 로드되며 isLoggedIn 상태 확인
+              web.window.location.reload();
+            },
+            child: Text('확인'),
+          ),
+        ],
+      ),
     );
   }
 

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:pwa_install/pwa_install.dart';
 
 import 'firebase_options.dart';
@@ -14,10 +13,10 @@ import 'view/pwa_install_view.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 폰트 로드
+  /* // 폰트 로드
   final fontLoader = FontLoader('PretendardVariable');
   fontLoader.addFont(rootBundle.load('assets/fonts/PretendardVariable.woff2'));
-  await fontLoader.load();
+  await fontLoader.load(); */
 
   // PWA 설치 확인
   PWAInstall().setup(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
+import 'package:gachon_noti_front/utils/alternative_text_style.dart';
 import '../controller/subscription_controller.dart';
 
 class SubscriptionView extends StatefulWidget {
@@ -118,23 +119,21 @@ class _SubscriptionViewState extends State<SubscriptionView> {
     return Stack(
       children: [
         ListView(
-          children:
-              _controller.allBoards.map((boardId) {
-                final subscribed = _controller.isBoardSubscribed(boardId);
-                return CheckboxListTile(
-                  title: Text(_controller.getBoardName(boardId)),
-                  subtitle: Text(_controller.getBoardDescription(boardId)),
-                  value: subscribed,
-                  onChanged:
-                      _isSaving
-                          ? null // 저장 중에는 체크박스 비활성화
-                          : (val) {
-                            if (val != null) {
-                              _handleToggleBoardTemp(boardId);
-                            }
-                          },
-                );
-              }).toList(),
+          children: _controller.allBoards.map((boardId) {
+            final subscribed = _controller.isBoardSubscribed(boardId);
+            return CheckboxListTile(
+              title: Text(_controller.getBoardName(boardId)),
+              subtitle: Text(_controller.getBoardDescription(boardId)),
+              value: subscribed,
+              onChanged: _isSaving
+                  ? null // 저장 중에는 체크박스 비활성화
+                  : (val) {
+                      if (val != null) {
+                        _handleToggleBoardTemp(boardId);
+                      }
+                    },
+            );
+          }).toList(),
         ),
 
         // 변경사항이 있을 때만 저장/취소 버튼 표시
@@ -156,9 +155,8 @@ class _SubscriptionViewState extends State<SubscriptionView> {
                         icon: Icon(Icons.cancel, color: Colors.white),
                         label: Text(
                           '취소',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyLarge?.copyWith(color: Colors.white),
+                          style: AltTextStyle.bodyLarge
+                              .copyWith(color: Colors.white),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.grey,
@@ -167,22 +165,20 @@ class _SubscriptionViewState extends State<SubscriptionView> {
                       ),
                       SizedBox(width: 16),
                       ElevatedButton.icon(
-                        icon:
-                            _isSaving
-                                ? SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                                : Icon(Icons.save, color: Colors.white),
+                        icon: _isSaving
+                            ? SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Icon(Icons.save, color: Colors.white),
                         label: Text(
                           '저장',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyLarge?.copyWith(color: Colors.white),
+                          style: AltTextStyle.bodyLarge
+                              ?.copyWith(color: Colors.white),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Theme.of(context).primaryColor,

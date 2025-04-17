@@ -1,3 +1,4 @@
+import 'package:gachon_noti_front/utils/alternative_text_style.dart';
 import 'package:web/web.dart' as web;
 
 import 'package:flutter/cupertino.dart';
@@ -14,7 +15,7 @@ class PwaInstallView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final materialTheme = MaterialTheme(Theme.of(context).textTheme);
+    final materialTheme = MaterialTheme();
 
     return MaterialApp(
       title: '가천 알림이',
@@ -46,39 +47,62 @@ class _PwaInstallScreenContent extends StatelessWidget {
                   height: 80,
                 )
               else
-                SvgPicture.asset(
-                  'assets/icons/chrome.svg',
-                  width: 80,
-                  height: 80,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SvgPicture.asset(
+                      'assets/icons/chrome.svg',
+                      width: 80,
+                      height: 80,
+                    ),
+                    if (defaultTargetPlatform == TargetPlatform.android) ...[
+                      const SizedBox(width: 16),
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Image.asset(
+                            'assets/icons/samsung_internet.webp',
+                            width: 80,
+                            height: 80,
+                          ),
+                          Icon(
+                            Icons.block,
+                            color: Colors.red.withOpacity(0.8),
+                            size: 70,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
               const SizedBox(height: 24),
               Text(
                 'PWA로 설치 필요',
-                style: Theme.of(context).textTheme.headlineMedium,
+                style: AltTextStyle.headlineMedium,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
               AutoSizeText(
-                '이 앱은 기기의 홈 화면에 설치 후 사용 가능합니다.',
-                style: Theme.of(context).textTheme.bodyLarge,
+                '이 앱은 기기의 홈 화면에 설치 후 사용 가능합니다.\n',
+                style: AltTextStyle.bodyLarge,
                 textAlign: TextAlign.center,
                 maxLines: 1,
               ),
               AutoSizeText(
                 '${defaultTargetPlatform == TargetPlatform.iOS ? 'Safari' : 'Chrome'} 브라우저를 권장합니다.',
-                style: Theme.of(context).textTheme.bodyLarge,
+                style: AltTextStyle.bodyLarge,
                 textAlign: TextAlign.center,
               ),
               if (defaultTargetPlatform == TargetPlatform.android)
                 AutoSizeText(
-                  '삼성 인터넷 앱은 버그가 있어 추천하지 않습니다.',
-                  style: Theme.of(context).textTheme.bodyLarge,
+                  '(삼성 인터넷 앱은 버그가 있어 추천하지 않습니다.)\n',
+                  style: AltTextStyle.bodyLarge,
                   textAlign: TextAlign.center,
                   maxLines: 1,
                 ),
               AutoSizeText(
                 '아래 설치 버튼을 눌러주세요.',
-                style: Theme.of(context).textTheme.bodyLarge,
+                style: AltTextStyle.bodyLarge,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -87,73 +111,68 @@ class _PwaInstallScreenContent extends StatelessWidget {
                   if (defaultTargetPlatform == TargetPlatform.iOS) {
                     showModalBottomSheet(
                       context: context,
-                      builder:
-                          (context) => Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Text(
-                                  'iOS 설치 방법 (Safari 권장)',
-                                  style: Theme.of(context).textTheme.titleLarge,
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16.0,
-                                  vertical: 8.0,
-                                ),
-                                child: Row(
-                                  children: [
-                                    AutoSizeText(
-                                      '1. 메뉴 바의 공유(',
-                                      style:
-                                          Theme.of(context).textTheme.bodyLarge,
-                                    ),
-                                    const Icon(
-                                      CupertinoIcons.share,
-                                      size: 16,
-                                      color: Color(0xFF007AFF),
-                                    ),
-                                    AutoSizeText(
-                                      ') 버튼 클릭',
-                                      style:
-                                          Theme.of(context).textTheme.bodyLarge,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 16.0,
-                                  vertical: 8.0,
-                                ),
-                                child: Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: AutoSizeText(
-                                    '2. 공유 메뉴에서 "홈 화면에 추가" 선택',
-                                    style:
-                                        Theme.of(context).textTheme.bodyLarge,
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 16.0,
-                                  vertical: 8.0,
-                                ),
-                                child: Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: AutoSizeText(
-                                    '3. 홈 화면에 앱이 설치되면 눌러서 실행',
-                                    style:
-                                        Theme.of(context).textTheme.bodyLarge,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                            ],
+                      builder: (context) => Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Text(
+                              'iOS 설치 방법 (Safari 권장)',
+                              style: AltTextStyle.titleLarge,
+                            ),
                           ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                              vertical: 8.0,
+                            ),
+                            child: Row(
+                              children: [
+                                AutoSizeText(
+                                  '1. 메뉴 바의 공유(',
+                                  style: AltTextStyle.bodyLarge,
+                                ),
+                                const Icon(
+                                  CupertinoIcons.share,
+                                  size: 16,
+                                  color: Color(0xFF007AFF),
+                                ),
+                                AutoSizeText(
+                                  ') 버튼 클릭',
+                                  style: AltTextStyle.bodyLarge,
+                                ),
+                              ],
+                            ),
+                          ),
+                          Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                              vertical: 8.0,
+                            ),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: AutoSizeText(
+                                '2. 공유 메뉴에서 "홈 화면에 추가" 선택',
+                                style: AltTextStyle.bodyLarge,
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                              vertical: 8.0,
+                            ),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: AutoSizeText(
+                                '3. 홈 화면에 앱이 설치되면 눌러서 실행',
+                                style: AltTextStyle.bodyLarge,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
                     );
                   } else {
                     PWAInstall().promptInstall_();
