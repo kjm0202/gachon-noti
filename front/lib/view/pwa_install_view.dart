@@ -15,7 +15,7 @@ class PwaInstallView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final materialTheme = MaterialTheme();
+    final materialTheme = MaterialTheme(Theme.of(context).textTheme);
 
     return MaterialApp(
       title: '가천 알림이',

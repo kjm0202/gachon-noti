@@ -42,8 +42,3 @@ flutter:
 
   assets:
     - assets/icons/
-
-  fonts:
-    - family: PretendardVariable
-      fonts:
-        - asset: assets/fonts/PretendardVariable.ttf
