@@ -14,6 +14,7 @@ import 'posts_view.dart';
 import '../services/auth_services.dart';
 import '../services/firebase_services.dart';
 import '../utils/korean_wrapper.dart';
+import '../controller/posts_controller.dart'; // PostsController 임포트 추가
 
 class HomePage extends StatefulWidget {
   final Client client;
@@ -37,10 +38,32 @@ class _HomePageState extends State<HomePage> {
   DateTime? _lastDialogTime; // 마지막 다이얼로그 표시 시간
   web.ServiceWorkerRegistration? _notificationServiceWorker; // 알림용 서비스 워커
 
+  // 탭 페이지들을 클래스 멤버 변수로 저장
+  late final List<Widget> _pages;
+
+  // PostsController 인스턴스 참조
+  late final PostsController _postsController;
+
   @override
   void initState() {
     super.initState();
     _databases = Databases(widget.client);
+
+    // PostsController 인스턴스 생성
+    _postsController = PostsController(client: widget.client, boardId: 'all');
+
+    // 페이지 초기화
+    _pages = [
+      SubscriptionView(
+          client: widget.client,
+          onSubscriptionChange: _handleSubscriptionChange),
+      PostsView(
+        client: widget.client,
+        boardId: 'all',
+        controller: _postsController,
+      ),
+    ];
+
     _initServices();
   }
 
@@ -361,13 +384,14 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // 구독 설정이 변경되었을 때 호출되는 콜백
+  void _handleSubscriptionChange() {
+    // 구독 변경 시 게시물 컨트롤러에 강제 새로고침 명령
+    _postsController.forceRefresh();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final List<Widget> pages = [
-      SubscriptionView(client: widget.client),
-      PostsView(client: widget.client, boardId: 'all'),
-    ];
-
     return Scaffold(
       appBar: AppBar(
         title: Text(_currentIndex == 0 ? '구독 설정' : '전체 게시물'),
@@ -434,7 +458,10 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: pages[_currentIndex],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _pages,
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {

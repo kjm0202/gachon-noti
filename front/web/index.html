@@ -224,24 +224,17 @@
         scope: '/firebase-cloud-messaging-push-scope',
       });
     });
+    window.addEventListener('load', function() {
+      // 명시적인 경로 지정 (루트 경로 사용)
+      navigator.serviceWorker.register('/notification-service-worker.js')
+        .then(function(registration) {
+          console.log('알림 서비스 워커 등록 성공:', registration.scope);
+        })
+        .catch(function(error) {
+           console.error('알림 서비스 워커 등록 실패:', error);
+        });
+    });
   }
-  </script>
-  
-  <!-- 알림용 서비스 워커 등록 -->
-  <script>
-    // 서비스 워커 등록
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        // 명시적인 경로 지정 (루트 경로 사용)
-        navigator.serviceWorker.register('/notification-service-worker.js')
-          .then(function(registration) {
-            console.log('알림 서비스 워커 등록 성공:', registration.scope);
-          })
-          .catch(function(error) {
-            console.error('알림 서비스 워커 등록 실패:', error);
-          });
-      });
-    }
   </script>
 </body>
 </html>

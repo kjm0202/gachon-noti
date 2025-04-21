@@ -10,7 +10,14 @@ import '../controller/posts_controller.dart';
 class PostsView extends StatefulWidget {
   final Client client;
   final String boardId;
-  const PostsView({super.key, required this.client, required this.boardId});
+  final PostsController? controller; // 외부에서 생성된 컨트롤러 인스턴스 (선택적)
+
+  const PostsView({
+    super.key,
+    required this.client,
+    required this.boardId,
+    this.controller,
+  });
 
   @override
   State<PostsView> createState() => _PostsViewState();
@@ -25,10 +32,14 @@ class _PostsViewState extends State<PostsView> {
   @override
   void initState() {
     super.initState();
-    _controller = PostsController(
-      client: widget.client,
-      boardId: widget.boardId,
-    );
+
+    // 외부에서 컨트롤러가 전달되었으면 그것을 사용, 아니면 새로 생성
+    _controller = widget.controller ??
+        PostsController(
+          client: widget.client,
+          boardId: widget.boardId,
+        );
+
     _initData();
 
     // 검색어 변경 리스너 등록
@@ -83,7 +94,7 @@ class _PostsViewState extends State<PostsView> {
   }
 
   Future<void> _refreshPosts() async {
-    await _controller.fetchPosts(
+    await _controller.forceRefresh(
       onSuccess: () {
         if (mounted) {
           setState(() {

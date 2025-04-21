@@ -5,7 +5,10 @@ import '../controller/subscription_controller.dart';
 
 class SubscriptionView extends StatefulWidget {
   final Client client;
-  const SubscriptionView({super.key, required this.client});
+  final Function? onSubscriptionChange; // 구독 변경 시 호출될 콜백
+
+  const SubscriptionView(
+      {super.key, required this.client, this.onSubscriptionChange});
 
   @override
   State<SubscriptionView> createState() => _SubscriptionViewState();
@@ -74,7 +77,10 @@ class _SubscriptionViewState extends State<SubscriptionView> {
 
     final success = await _controller.saveAllSubscriptions(
       onUpdate: (newList) {
-        // 저장 성공했을 때 UI 업데이트는 이미 setState에서 처리됨
+        // 구독 설정 변경 알림
+        if (widget.onSubscriptionChange != null) {
+          widget.onSubscriptionChange!();
+        }
       },
       onError: (err) {
         if (mounted) {

@@ -13,6 +13,13 @@ class PostsController {
   String searchQuery = ''; // 검색어
   String selectedTagFilter = 'all'; // 선택된 태그 필터, 기본값은 'all'
 
+  // 캐싱 관련 변수
+  static Map<String, List<Map<String, dynamic>>> _cachedPosts = {};
+  static List<String> _cachedSubscribedBoards = [];
+  static DateTime _lastFetchTime = DateTime(1970);
+  // 캐시 유효 시간 (5분)
+  static const Duration _cacheDuration = Duration(minutes: 5);
+
   PostsController({required this.client, required this.boardId}) {
     _account = Account(client);
     _databases = Databases(client);
@@ -23,23 +30,35 @@ class PostsController {
     Function? onError,
   }) async {
     try {
-      final user = await _account.get();
+      // 현재 시간
+      final now = DateTime.now();
 
-      // userId로 구독 문서 찾기
-      final subscriptions = await _databases.listDocuments(
-        databaseId: API.databaseId,
-        collectionId: API.collectionsSubscriptionsId,
-        queries: [Query.equal('userId', user.$id)],
-      );
+      // 캐시 유효 시간 확인
+      final bool isCacheValid = now.difference(_lastFetchTime) < _cacheDuration;
 
-      if (subscriptions.documents.isNotEmpty) {
-        final doc = subscriptions.documents.first;
-        subscribedBoards = List<String>.from(doc.data['boards'] ?? []);
-      } else {
-        subscribedBoards = [];
+      // 구독한 게시판 정보 로드
+      if (_cachedSubscribedBoards.isEmpty || !isCacheValid) {
+        final user = await _account.get();
+
+        // userId로 구독 문서 찾기
+        final subscriptions = await _databases.listDocuments(
+          databaseId: API.databaseId,
+          collectionId: API.collectionsSubscriptionsId,
+          queries: [Query.equal('userId', user.$id)],
+        );
+
+        if (subscriptions.documents.isNotEmpty) {
+          final doc = subscriptions.documents.first;
+          _cachedSubscribedBoards = List<String>.from(doc.data['boards'] ?? []);
+        } else {
+          _cachedSubscribedBoards = [];
+        }
       }
 
-      await fetchPosts(onSuccess: onSuccess);
+      // 캐시된 구독 보드 정보를 현재 컨트롤러에 설정
+      subscribedBoards = _cachedSubscribedBoards;
+
+      await fetchPosts(onSuccess: onSuccess, useCache: isCacheValid);
     } catch (e) {
       print('Error initializing: $e');
       loading = false;
@@ -51,7 +70,11 @@ class PostsController {
     }
   }
 
-  Future<void> fetchPosts({Function? onSuccess, Function? onError}) async {
+  Future<void> fetchPosts(
+      {Function? onSuccess,
+      Function? onError,
+      bool useCache = true,
+      bool forceRefresh = false}) async {
     loading = true;
     if (onSuccess != null) onSuccess();
 
@@ -67,6 +90,19 @@ class PostsController {
         return;
       }
 
+      // 캐시 키 생성 (boardId 또는 'all'+'구독 게시판 목록' 조합)
+      final String cacheKey =
+          boardId == 'all' ? 'all_${subscribedBoards.join('_')}' : boardId;
+
+      // 캐시 사용 가능하고 강제 새로고침이 아닌 경우, 캐시된 데이터 사용
+      if (useCache && !forceRefresh && _cachedPosts.containsKey(cacheKey)) {
+        posts = List.from(_cachedPosts[cacheKey]!);
+        filteredPosts = List.from(posts);
+        loading = false;
+        if (onSuccess != null) onSuccess();
+        return;
+      }
+
       final result = await _databases.listDocuments(
         databaseId: API.databaseId,
         collectionId: API.collectionsPostsId,
@@ -77,15 +113,18 @@ class PostsController {
         ],
       );
 
-      posts =
-          result.documents.map((doc) {
-            // description이 없는 경우 빈 문자열로 설정
-            final data = doc.data;
-            if (data['description'] == null) {
-              data['description'] = '';
-            }
-            return data;
-          }).toList();
+      posts = result.documents.map((doc) {
+        // description이 없는 경우 빈 문자열로 설정
+        final data = doc.data;
+        if (data['description'] == null) {
+          data['description'] = '';
+        }
+        return data;
+      }).toList();
+
+      // 캐시 업데이트
+      _cachedPosts[cacheKey] = List.from(posts);
+      _lastFetchTime = DateTime.now();
 
       // 초기에는 필터링된 게시물 목록과 전체 게시물 목록이 동일
       filteredPosts = List.from(posts);
@@ -99,6 +138,15 @@ class PostsController {
         onError(err);
       }
     }
+  }
+
+  // 강제 새로고침 수행
+  Future<void> forceRefresh({Function? onSuccess, Function? onError}) async {
+    await fetchPosts(
+        onSuccess: onSuccess,
+        onError: onError,
+        useCache: false,
+        forceRefresh: true);
   }
 
   // 검색어로 게시물 필터링
@@ -120,22 +168,19 @@ class PostsController {
 
     // 'all'이 아닌 경우에만 태그 필터링 적용
     if (selectedTagFilter != 'all') {
-      tempFiltered =
-          tempFiltered.where((post) {
-            return post['boardId'] == selectedTagFilter;
-          }).toList();
+      tempFiltered = tempFiltered.where((post) {
+        return post['boardId'] == selectedTagFilter;
+      }).toList();
     }
 
     // 검색어가 있는 경우 제목 또는 내용으로 필터링
     if (searchQuery.isNotEmpty) {
-      tempFiltered =
-          tempFiltered.where((post) {
-            final title = post['title']?.toString().toLowerCase() ?? '';
-            final description =
-                post['description']?.toString().toLowerCase() ?? '';
-            final query = searchQuery.toLowerCase();
-            return title.contains(query) || description.contains(query);
-          }).toList();
+      tempFiltered = tempFiltered.where((post) {
+        final title = post['title']?.toString().toLowerCase() ?? '';
+        final description = post['description']?.toString().toLowerCase() ?? '';
+        final query = searchQuery.toLowerCase();
+        return title.contains(query) || description.contains(query);
+      }).toList();
     }
 
     filteredPosts = tempFiltered;
