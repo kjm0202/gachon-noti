@@ -1,7 +1,7 @@
 // index.js
 import fetch from 'node-fetch';
 import { XMLParser } from 'fast-xml-parser';
-import { Client, Databases, Query } from 'node-appwrite';
+import { createClient } from '@supabase/supabase-js';
 import admin from 'firebase-admin';
 
 // RSS 목록 정의
@@ -17,21 +17,17 @@ const RSS_FEEDS = [
 ];
 
 async function main() {
-  // 1) 환경변수에서 Appwrite 및 Firebase 인증 정보 받아옴
-  const APPWRITE_ENDPOINT = process.env.APPWRITE_ENDPOINT;
-  const APPWRITE_API_KEY = process.env.APPWRITE_API_KEY;
-  const APPWRITE_PROJECT_ID = process.env.APPWRITE_PROJECT_ID;
-  const DATABASE_ID = process.env.APPWRITE_DATABASE_ID;
-  const POSTS_COLLECTION_ID = process.env.APPWRITE_POSTS_COLLECTION_ID;
-  const SUBSCRIPTIONS_COLLECTION_ID = process.env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID;
+  // 1) 환경변수에서 Supabase 및 Firebase 인증 정보 받아옴
+  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
   // Firebase Admin SDK 초기화
   const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
   const FIREBASE_CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL;
   const FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
   
-  if (!APPWRITE_ENDPOINT || !APPWRITE_API_KEY || !APPWRITE_PROJECT_ID || !DATABASE_ID || !POSTS_COLLECTION_ID) {
-    throw new Error('Missing Appwrite environment variables');
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+    throw new Error('Missing Supabase environment variables');
   }
 
   if (!FIREBASE_PROJECT_ID || !FIREBASE_CLIENT_EMAIL || !FIREBASE_PRIVATE_KEY) {
@@ -47,13 +43,13 @@ async function main() {
     }),
   });
 
-  // 2) Appwrite Client 초기화
-  const client = new Client()
-    .setEndpoint(APPWRITE_ENDPOINT)
-    .setProject(APPWRITE_PROJECT_ID)
-    .setKey(APPWRITE_API_KEY);
-
-  const databases = new Databases(client);
+  // 2) Supabase Client 초기화 (서비스 계정 키 사용)
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
 
   // 3) RSS 파서 준비
   const parser = new XMLParser({
@@ -91,31 +87,46 @@ async function main() {
         const author = item.author || '관리자';
 
         // 중복 체크: link를 unique key로 사용
-        const existing = await databases.listDocuments(DATABASE_ID, POSTS_COLLECTION_ID, [
-          Query.equal('link', link),
-        ]);
+        const { data: existing, error: queryError } = await supabase
+          .from('posts')
+          .select('id')
+          .eq('link', link)
+          .maybeSingle();
 
-        if (existing.total > 0) {
+        if (queryError) {
+          console.error(`DB query error for ${boardId}:`, queryError);
+          continue;
+        }
+
+        if (existing) {
           // 이미 존재 -> 여기서 나머지 아이템을 검사하지 않고 다음 게시판으로 넘어감
           console.log(`[OLD POST] boardId=${boardId}, title=${title.slice(0, 30)}. Skipping the rest of this feed...`);
           break;
         }
 
-        // 새 게시물 -> Appwrite에 저장
-        const newPost = await databases.createDocument(DATABASE_ID, POSTS_COLLECTION_ID, 'unique()', {
-          boardId,
-          title,
-          link,
-          description,
-          pubDate,
-          author,
-          createdAt: new Date().toISOString(),
-        });
+        // 새 게시물 -> Supabase에 저장
+        const { data: newPost, error: insertError } = await supabase
+          .from('posts')
+          .insert({
+            board_id: boardId,
+            title,
+            link,
+            description,
+            author,
+            created_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error(`Failed to save post for ${boardId}:`, insertError);
+          continue;
+        }
 
         console.log(`[NEW POST] boardId=${boardId}, title=${title.slice(0, 30)}`);
         
         // 해당 게시판을 구독한 사용자들에게 알림 발송
-        await sendPushNotifications(databases, DATABASE_ID, SUBSCRIPTIONS_COLLECTION_ID, boardId, title, link);
+        await sendPushNotifications(supabase, boardId, title, link);
       }
     } catch (err) {
       console.error(`Failed to parse feed ${boardId}:`, err);
@@ -151,45 +162,57 @@ function parsePubDate(dateStr) {
 /**
  * 사용자들에게 푸시 알림 발송
  */
-async function sendPushNotifications(databases, databaseId, subscriptionsCollectionId, boardId, title, link) {
+async function sendPushNotifications(supabase, boardId, title, link) {
   try {
-    // 해당 게시판을 구독한 사용자 목록 조회
-    const subscribers = await databases.listDocuments(databaseId, subscriptionsCollectionId, [
-      Query.equal('boards', [boardId]),  // 사용자가 구독한 게시판 배열에 현재 게시판이 포함된 경우
-    ]);
+    // 해당 게시판을 구독한 사용자 목록 조회 - Postgres 배열 contains 연산자 사용
+    const { data: subscribers, error: subError } = await supabase
+      .from('subscriptions')
+      .select('id, user_id')
+      .contains('boards', [boardId]);
 
-    if (subscribers.total === 0) {
+    if (subError) {
+      console.error(`Error fetching subscribers:`, subError);
+      return;
+    }
+
+    if (!subscribers || subscribers.length === 0) {
       console.log(`No subscribers for boardId=${boardId}`);
       return;
     }
 
-    console.log(`Found ${subscribers.total} subscribers for boardId=${boardId}`);
+    console.log(`Found ${subscribers.length} subscribers for boardId=${boardId}`);
 
     // 사용자별 디바이스 토큰을 수집
     const userTokensMap = new Map(); // userId -> fcm tokens array
 
     // 모든 구독자의 디바이스 토큰 수집
-    for (const subscriber of subscribers.documents) {
-      const userId = subscriber.userId;
+    for (const subscriber of subscribers) {
+      const userId = subscriber.user_id;
       
-      // user_devices 컬렉션에서 해당 사용자의 디바이스 토큰 조회
-      const userDevices = await databases.listDocuments(databaseId, process.env.APPWRITE_USER_DEVICES_COLLECTION_ID, [
-        Query.equal('userId', userId),
-      ]);
+      // user_devices 테이블에서 해당 사용자의 디바이스 토큰 조회
+      const { data: userDevices, error: deviceError } = await supabase
+        .from('user_devices')
+        .select('id, fcm_token')
+        .eq('user_id', userId);
       
-      if (userDevices.total === 0) {
+      if (deviceError) {
+        console.error(`Error fetching devices for user ${userId}:`, deviceError);
+        continue;
+      }
+      
+      if (!userDevices || userDevices.length === 0) {
         console.log(`No devices found for user ${userId}`);
         continue;
       }
       
-      console.log(`Found ${userDevices.total} devices for user ${userId}`);
+      console.log(`Found ${userDevices.length} devices for user ${userId}`);
       
       // 유효한 토큰만 수집
-      const validTokens = userDevices.documents
-        .filter(device => device.fcmToken)
+      const validTokens = userDevices
+        .filter(device => device.fcm_token)
         .map(device => ({
-          token: device.fcmToken,
-          deviceId: device.$id
+          token: device.fcm_token,
+          deviceId: device.id
         }));
       
       if (validTokens.length > 0) {
@@ -199,10 +222,6 @@ async function sendPushNotifications(databases, databaseId, subscriptionsCollect
 
     // FCM 메시지 기본 구성
     const baseMessage = {
-      /* notification: {
-        title: `[${getBoardName(boardId)}] 새 공지사항`,
-        body: title,
-      }, */
       data: {
         boardName: getBoardName(boardId),
         title: title,
@@ -216,7 +235,6 @@ async function sendPushNotifications(databases, databaseId, subscriptionsCollect
       
       // 각 디바이스별로 개별 메시지 생성
       const messages = devices.map(device => ({
-        // notification: baseMessage.notification,
         data: baseMessage.data,
         token: device.token
       }));
@@ -240,13 +258,16 @@ async function sendPushNotifications(databases, databaseId, subscriptionsCollect
             ) {
               console.log(`Removing invalid token for device ${deviceId}`);
               try {
-                await databases.deleteDocument(
-                  databaseId,
-                  process.env.APPWRITE_USER_DEVICES_COLLECTION_ID,
-                  deviceId
-                );
+                const { error: deleteError } = await supabase
+                  .from('user_devices')
+                  .delete()
+                  .eq('id', deviceId);
+                
+                if (deleteError) {
+                  console.error(`Error deleting invalid token:`, deleteError);
+                }
               } catch (deleteError) {
-                console.error(`Error deleting invalid token document:`, deleteError);
+                console.error(`Error deleting invalid token:`, deleteError);
               }
             } else {
               console.error(`FCM error for device ${deviceId}:`, error);
