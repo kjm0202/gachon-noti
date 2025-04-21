@@ -95,7 +95,10 @@ class _SubscriptionViewState extends State<SubscriptionView> {
     if (mounted && success) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('구독 설정이 저장되었습니다.')));
+      ).showSnackBar(SnackBar(
+        content: Text('구독 설정이 저장되었습니다.'),
+        duration: Duration(seconds: 2),
+      ));
     }
 
     if (mounted) {
@@ -122,9 +125,15 @@ class _SubscriptionViewState extends State<SubscriptionView> {
       return Center(child: CircularProgressIndicator());
     }
 
+    // 저장/취소 버튼의 높이를 계산합니다.
+    // 버튼 높이 + 패딩 + 마진 = 약 100
+    final bottomButtonsHeight = _controller.hasChanges ? 100.0 : 0.0;
+
     return Stack(
       children: [
         ListView(
+          // 변경사항이 있을 때 하단에 패딩 추가
+          padding: EdgeInsets.only(bottom: bottomButtonsHeight),
           children: _controller.allBoards.map((boardId) {
             final subscribed = _controller.isBoardSubscribed(boardId);
             return CheckboxListTile(
