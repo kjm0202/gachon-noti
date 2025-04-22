@@ -28,7 +28,6 @@ dependencies:
   supabase_flutter: ^2.8.4
 
 dependency_overrides:
-  flutter_web_auth_2: ^4.1.0
 
 dev_dependencies:
   flutter_test:

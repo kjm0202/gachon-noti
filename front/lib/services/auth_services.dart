@@ -94,7 +94,7 @@ class AuthService {
 
       await _supabase.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: redirectUrl,
+        redirectTo: null,
         authScreenLaunchMode:
             (defaultTargetPlatform == TargetPlatform.android ||
                     defaultTargetPlatform == TargetPlatform.iOS)
