@@ -80,10 +80,21 @@ class AuthService {
       // 로그인 성공 콜백 저장 (인증 상태 변경 시 호출)
       _pendingLoginSuccess = onLoginSuccess;
 
+      String? redirectUrl;
+
+      if (kIsWeb) {
+        // 웹에서 리다이렉트 URL 설정 (origin만 사용)
+        final origin = web.window.location.origin;
+        redirectUrl = origin;
+        print('리다이렉트 URL: $redirectUrl');
+      } else {
+        // 모바일 앱에서는 딥링크 URL 설정
+        redirectUrl = 'io.supabase.flutterquickstart://login-callback';
+      }
+
       await _supabase.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo:
-            kIsWeb ? null : 'io.supabase.flutterquickstart://login-callback',
+        redirectTo: redirectUrl,
         authScreenLaunchMode:
             (defaultTargetPlatform == TargetPlatform.android ||
                     defaultTargetPlatform == TargetPlatform.iOS)
