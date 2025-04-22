@@ -62,9 +62,25 @@ class _PostsViewState extends State<PostsView> {
   }
 
   // 태그 필터 변경 이벤트 처리
-  void _onTagFilterChanged(String tag) {
+  Future<void> _onTagFilterChanged(String tag) async {
     setState(() {
-      _controller.filterByTag(tag);
+      _isLoading = true;
+    });
+    await _controller.filterByTag(tag, onSuccess: () {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }, onError: (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('게시물을 불러오는데 실패했습니다.')),
+        );
+      }
     });
   }
 
@@ -123,9 +139,11 @@ class _PostsViewState extends State<PostsView> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Could not open link')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not open link')));
+      }
     }
   }
 
@@ -230,10 +248,28 @@ class _PostsViewState extends State<PostsView> {
 
   @override
   Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // 검색바와 태그 선택기는 항상 표시
+        _buildSearchBar(),
+        _buildTagSelector(),
+
+        // 게시물 목록 부분만 조건부 렌더링
+        Expanded(
+          child: _buildPostsContent(),
+        ),
+      ],
+    );
+  }
+
+  // 게시물 목록 콘텐츠를 조건에 따라 표시
+  Widget _buildPostsContent() {
+    // 로딩 중인 경우
     if (_isLoading) {
       return Center(child: CircularProgressIndicator());
     }
 
+    // 게시물이 없는 경우
     if (_controller.posts.isEmpty) {
       return Center(
         child: Column(
@@ -255,176 +291,215 @@ class _PostsViewState extends State<PostsView> {
 
     // 검색 결과가 없는 경우
     if (_controller.filteredPosts.isEmpty) {
-      return Column(
-        children: [
-          _buildSearchBar(),
-          _buildTagSelector(),
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.search_off, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text(
-                    '검색 결과가 없습니다.',
-                    textAlign: TextAlign.center,
-                    style: AltTextStyle.titleMedium,
-                  ),
-                ],
-              ),
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search_off, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              '검색 결과가 없습니다.',
+              textAlign: TextAlign.center,
+              style: AltTextStyle.titleMedium,
             ),
-          ),
-        ],
+          ],
+        ),
       );
     }
 
-    return Column(
-      children: [
-        _buildSearchBar(),
-        _buildTagSelector(),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: _refreshPosts,
-            child: ListView.builder(
-              itemCount: _controller.filteredPosts.length,
-              padding: EdgeInsets.symmetric(vertical: 8),
-              itemBuilder: (context, idx) {
-                final post = _controller.filteredPosts[idx];
-                final String boardName = _controller.getBoardName(
-                  post['board_id'] ?? '',
-                );
-                print('게시물 보드 ID: ${post['board_id']} => 게시판 이름: $boardName');
-                final String dateStr = _formatDate(post['pub_date']);
+    // 게시물 목록 표시
+    return RefreshIndicator(
+      onRefresh: _refreshPosts,
+      child: NotificationListener<ScrollNotification>(
+        onNotification: _handleScrollNotification,
+        child: ListView.builder(
+          itemCount: _controller.filteredPosts.length +
+              (_controller.hasMoreData ? 1 : 0),
+          padding: EdgeInsets.symmetric(vertical: 8),
+          itemBuilder: (context, idx) {
+            // 마지막 항목이고 더 로드할 데이터가 있는 경우 로딩 인디케이터 표시
+            if (idx == _controller.filteredPosts.length) {
+              return _buildLoadingIndicator();
+            }
 
-                return Card(
-                  margin: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () {
-                      if (post['link'] != null) {
-                        _launchUrl(post['link']);
-                      }
-                    },
-                    child: Stack(
-                      children: [
-                        Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+            final post = _controller.filteredPosts[idx];
+            final String boardName = _controller.getBoardName(
+              post['board_id'] ?? '',
+            );
+            final String dateStr = _formatDate(post['pub_date']);
+
+            return Card(
+              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () {
+                  if (post['link'] != null) {
+                    _launchUrl(post['link']);
+                  }
+                },
+                child: Stack(
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 게시판 정보와 날짜
+                          Row(
                             children: [
-                              // 게시판 정보와 날짜
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primaryContainer,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      boardName,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onPrimaryContainer,
-                                      ),
-                                    ),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.primaryContainer,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  boardName,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimaryContainer,
                                   ),
-                                  Spacer(),
-                                  Text(
-                                    dateStr,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-                                  SizedBox(width: 24),
-                                ],
+                                ),
                               ),
-
-                              SizedBox(height: 10),
-
-                              // 게시물 제목 - 한 줄로 제한
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Padding(
-                                      padding: EdgeInsets.only(right: 24),
-                                      child: AutoSizeText(
-                                        (post['title'] as String?)?.wrapped ??
-                                            '(제목 없음)',
-                                        style: AltTextStyle.bodyLarge,
-                                        maxLines: 1,
-                                        minFontSize: 14,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                              Spacer(),
+                              Text(
+                                dateStr,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
                               ),
-
-                              SizedBox(height: 4),
-
-                              // 게시물 내용 - 한 줄로 제한하고 말줄임표 처리
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Padding(
-                                      padding: EdgeInsets.only(right: 24),
-                                      child: Text(
-                                        post['description']?.toString() ?? '',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey[600],
-                                          height: 1.2,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-
-                              SizedBox(height: 6),
+                              SizedBox(width: 24),
                             ],
                           ),
-                        ),
 
-                        // 오른쪽 중앙에 화살표 배치
-                        Positioned(
-                          right: 16,
-                          top: 0,
-                          bottom: 0,
-                          child: Center(
-                            child: Icon(
-                              Icons.arrow_forward_ios,
-                              size: 14,
-                              color: Colors.grey[400],
-                            ),
+                          SizedBox(height: 10),
+
+                          // 게시물 제목 - 한 줄로 제한
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Padding(
+                                  padding: EdgeInsets.only(right: 24),
+                                  child: AutoSizeText(
+                                    (post['title'] as String?)?.wrapped ??
+                                        '(제목 없음)',
+                                    style: AltTextStyle.bodyLarge,
+                                    maxLines: 1,
+                                    minFontSize: 14,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+
+                          SizedBox(height: 4),
+
+                          // 게시물 내용 - 한 줄로 제한하고 말줄임표 처리
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Padding(
+                                  padding: EdgeInsets.only(right: 24),
+                                  child: Text(
+                                    post['description']?.toString() ?? '',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                      height: 1.2,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          SizedBox(height: 6),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
-          ),
+
+                    // 오른쪽 중앙에 화살표 배치
+                    Positioned(
+                      right: 16,
+                      top: 0,
+                      bottom: 0,
+                      child: Center(
+                        child: Icon(
+                          Icons.arrow_forward_ios,
+                          size: 14,
+                          color: Colors.grey[400],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
-      ],
+      ),
+    );
+  }
+
+  // 스크롤 이벤트 처리
+  bool _handleScrollNotification(ScrollNotification notification) {
+    if (notification is ScrollEndNotification) {
+      if (notification.metrics.pixels >=
+          notification.metrics.maxScrollExtent * 0.9) {
+        _loadMoreData();
+      }
+    }
+    return false;
+  }
+
+  // 추가 데이터 로드
+  Future<void> _loadMoreData() async {
+    if (!_controller.loadingMore && _controller.hasMoreData) {
+      await _controller.loadMorePosts(
+        onSuccess: () {
+          if (mounted) {
+            setState(() {});
+          }
+        },
+        onError: (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('추가 게시물을 불러오는데 실패했습니다.')),
+            );
+          }
+        },
+      );
+    }
+  }
+
+  // 로딩 인디케이터 위젯
+  Widget _buildLoadingIndicator() {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 16),
+      alignment: Alignment.center,
+      child: SizedBox(
+        width: 24,
+        height: 24,
+        child: CircularProgressIndicator(
+          strokeWidth: 2.0,
+        ),
+      ),
     );
   }
 }
