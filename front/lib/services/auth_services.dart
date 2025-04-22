@@ -1,7 +1,9 @@
-import 'package:appwrite/appwrite.dart';
-import 'package:appwrite/enums.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart'
+    show PlatformDispatcher, defaultTargetPlatform, kIsWeb;
 import 'package:web/web.dart' as web;
+import 'dart:async';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -10,12 +12,42 @@ class AuthService {
 
   AuthService._internal();
 
-  late Account _account;
+  late final SupabaseClient _supabase;
   String? _userId;
   String? _userEmail;
+  StreamSubscription<AuthState>? _authSubscription;
+  Function? _pendingLoginSuccess;
 
-  void init(Client client) {
-    _account = Account(client);
+  void init() {
+    _supabase = Supabase.instance.client;
+
+    // 인증 상태 변화 구독
+    _authSubscription = _supabase.auth.onAuthStateChange.listen((data) {
+      final AuthChangeEvent event = data.event;
+      final Session? session = data.session;
+
+      print('인증 상태 변경: $event');
+
+      if (event == AuthChangeEvent.signedIn && session != null) {
+        print('로그인 성공: ${session.user.email}');
+        _userId = session.user.id;
+        _userEmail = session.user.email;
+
+        // 보류 중인 성공 콜백이 있으면 실행
+        if (_pendingLoginSuccess != null) {
+          _pendingLoginSuccess!();
+          _pendingLoginSuccess = null;
+        }
+      } else if (event == AuthChangeEvent.signedOut) {
+        print('로그아웃');
+        _userId = null;
+        _userEmail = null;
+      }
+    });
+  }
+
+  void dispose() {
+    _authSubscription?.cancel();
   }
 
   String? get userId => _userId;
@@ -24,10 +56,13 @@ class AuthService {
 
   Future<bool> checkCurrentSession() async {
     try {
-      final user = await _account.get();
-      _userEmail = user.email;
-      _userId = user.$id;
-      return true;
+      final currentUser = _supabase.auth.currentUser;
+      if (currentUser != null) {
+        _userEmail = currentUser.email;
+        _userId = currentUser.id;
+        return true;
+      }
+      return false;
     } catch (e) {
       print('No active session: $e');
       _userEmail = null;
@@ -42,44 +77,37 @@ class AuthService {
     required Function onLoginFailed,
   }) async {
     try {
-      // 현재 URL을 기반으로 success/failure URL 설정
-      final currentUrl = web.window.location.origin;
-      print('currentUrl: $currentUrl');
-      final successUrl = '$currentUrl/auth.html';
-      print('successUrl: $successUrl');
+      // 로그인 성공 콜백 저장 (인증 상태 변경 시 호출)
+      _pendingLoginSuccess = onLoginSuccess;
 
-      // OAuth 세션 생성 시도
-      await _account.createOAuth2Session(
-        provider: OAuthProvider.google,
-        success: successUrl,
+      String? redirectUrl;
+
+      if (kIsWeb) {
+        // 웹에서 리다이렉트 URL 설정 (origin만 사용)
+        redirectUrl = web.window.location.origin;
+      } else {
+        // 모바일 앱에서는 딥링크 URL 설정
+        redirectUrl = 'io.supabase.flutterquickstart://login-callback';
+      }
+
+      await _supabase.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: redirectUrl,
+        authScreenLaunchMode:
+            (defaultTargetPlatform == TargetPlatform.android ||
+                    defaultTargetPlatform == TargetPlatform.iOS)
+                ? LaunchMode.inAppBrowserView
+                : LaunchMode.externalApplication,
       );
 
-      // 직접 세션 상태 확인
-      try {
-        final user = await _account.get();
-        _userEmail = user.email;
-        _userId = user.$id;
-        onLoginSuccess();
-        return true;
-      } catch (e) {
-        print('로그인 후 세션 확인 실패: $e');
-        onLoginFailed();
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('로그인 정보를 가져오는데 실패했습니다. 페이지를 새로고침해주세요.'),
-              action: SnackBarAction(
-                label: '새로고침',
-                onPressed: () => web.window.location.reload(),
-              ),
-            ),
-          );
-        }
-        return false;
-      }
+      // 웹에서는 리다이렉션이 발생하므로 여기에 도달하지 않을 수 있음
+      // 대신 onAuthStateChange 이벤트에서 처리
+      return true;
     } catch (e) {
       print('Login failed: $e');
       onLoginFailed();
+      _pendingLoginSuccess = null;
+
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
@@ -91,7 +119,7 @@ class AuthService {
 
   Future<bool> logout() async {
     try {
-      await _account.deleteSession(sessionId: 'current');
+      await _supabase.auth.signOut();
       _userEmail = null;
       _userId = null;
       return true;

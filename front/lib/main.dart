@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:appwrite/appwrite.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pwa_install/pwa_install.dart';
@@ -27,23 +27,23 @@ void main() async {
 
   // PWA 모드 확인
   final bool isPwa = PwaUtils.isPwaMode();
-  Client? client;
 
-  // PWA 모드이거나 디버그 모드일 때 Firebase와 Appwrite 초기화
+  // PWA 모드이거나 디버그 모드일 때 Firebase와 Supabase 초기화
   if (isPwa || kDebugMode) {
     // Firebase 초기화
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
-    // Appwrite 클라이언트 초기화
-    client = Client().setEndpoint(API.apiUrl).setProject(API.projectId);
+    // Supabase 초기화
+    await Supabase.initialize(
+      url: API.supabaseUrl,
+      anonKey: API.supabaseAnonKey,
+    );
   }
 
   // 디버그 모드이거나 PWA 모드일 때 앱 콘텐츠 뷰 표시, 그 외에는 PWA 설치 화면 표시
   runApp(
-    (isPwa || kDebugMode)
-        ? AppContentView(client: client!)
-        : const PwaInstallView(),
+    (isPwa || kDebugMode) ? const AppContentView() : const PwaInstallView(),
   );
 }

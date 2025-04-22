@@ -1,10 +1,7 @@
-import 'package:appwrite/appwrite.dart';
-import '../utils/const.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class BoardSelectionController {
-  final Client client;
-  late Account _account;
-  late Databases _databases;
+  final SupabaseClient client;
   String? userId;
   bool loading = true;
   String? subscriptionId;
@@ -24,10 +21,7 @@ class BoardSelectionController {
     'dormMedical',
   ];
 
-  BoardSelectionController({required this.client}) {
-    _account = Account(client);
-    _databases = Databases(client);
-  }
+  BoardSelectionController({required this.client});
 
   bool _areListsEqual(List<String> list1, List<String> list2) {
     if (list1.length != list2.length) return false;
@@ -47,8 +41,12 @@ class BoardSelectionController {
     Function? onFinally,
   }) async {
     try {
-      final user = await _account.get();
-      userId = user.$id;
+      final user = client.auth.currentUser;
+      if (user == null) {
+        throw Exception('사용자가 로그인하지 않았습니다.');
+      }
+
+      userId = user.id;
       print('Current user ID: $userId'); // 디버깅용 로그 추가
 
       await loadUserSubscription(onError: onError);
@@ -70,38 +68,30 @@ class BoardSelectionController {
 
     try {
       print('Fetching subscriptions for user: $userId'); // 디버깅용 로그 추가
-      final subscriptions = await _databases.listDocuments(
-        databaseId: API.databaseId,
-        collectionId: API.collectionsSubscriptionsId,
-        queries: [Query.equal('userId', userId!)],
-      );
 
-      print(
-        'Found ${subscriptions.documents.length} subscriptions',
-      ); // 디버깅용 로그 추가
+      final response = await client
+          .from('subscriptions')
+          .select('id, boards')
+          .eq('user_id', userId!)
+          .maybeSingle();
 
-      if (subscriptions.documents.isNotEmpty) {
-        final doc = subscriptions.documents.first;
-        subscriptionId = doc.$id;
-        print('Subscription document ID: ${doc.$id}'); // 디버깅용 로그 추가
-        final boardsField = doc.data['boards'];
+      if (response != null) {
+        subscriptionId = response['id'];
+        print('Subscription ID: $subscriptionId'); // 디버깅용 로그 추가
+
+        final boardsField = response['boards'];
         print('Boards field: $boardsField'); // 디버깅용 로그 추가
 
         subscribedBoards =
             boardsField != null ? List<String>.from(boardsField) : [];
         tempSubscribedBoards = List<String>.from(subscribedBoards);
-        loading = false;
       } else {
         print('No subscription found, creating new...'); // 디버깅용 로그 추가
         await createEmptySubscription(onError: onError);
       }
     } catch (e) {
       print('Error loading subscription: $e');
-      if (e.toString().contains('document not found')) {
-        await createEmptySubscription(onError: onError);
-      } else if (onError != null) {
-        onError(e);
-      }
+      await createEmptySubscription(onError: onError);
     } finally {
       loading = false;
     }
@@ -112,25 +102,27 @@ class BoardSelectionController {
 
     try {
       final now = DateTime.now().toIso8601String();
-      final data = {'boards': [], 'userId': userId, 'lastUpdate': now};
+
+      final data = {
+        'boards': [],
+        'user_id': userId,
+        'created_at': now,
+        'updated_at': now
+      };
 
       print('Creating subscription with data: $data'); // 디버깅용 로그 추가
 
-      final result = await _databases.createDocument(
-        databaseId: API.databaseId,
-        collectionId: API.collectionsSubscriptionsId,
-        documentId: 'unique()',
-        data: data,
-      );
+      final response =
+          await client.from('subscriptions').insert(data).select('id').single();
 
-      subscriptionId = result.$id;
-      print('Created subscription document: ${result.$id}'); // 디버깅용 로그 추가
+      subscriptionId = response['id'];
+      print('Created subscription with ID: $subscriptionId'); // 디버깅용 로그 추가
 
       subscribedBoards = [];
       tempSubscribedBoards = [];
       loading = false;
     } catch (err) {
-      print('Error creating subscription doc: $err');
+      print('Error creating subscription: $err');
       loading = false;
       if (onError != null) {
         onError(err);
@@ -171,12 +163,10 @@ class BoardSelectionController {
         'Updating subscription $subscriptionId with boards: $tempSubscribedBoards',
       );
 
-      await _databases.updateDocument(
-        databaseId: API.databaseId,
-        collectionId: API.collectionsSubscriptionsId,
-        documentId: subscriptionId!,
-        data: {'boards': tempSubscribedBoards, 'lastUpdate': now},
-      );
+      await client
+          .from('subscriptions')
+          .update({'boards': tempSubscribedBoards, 'updated_at': now}).eq(
+              'id', subscriptionId!);
 
       subscribedBoards = List<String>.from(tempSubscribedBoards);
       print('Successfully updated subscription');
@@ -224,12 +214,8 @@ class BoardSelectionController {
 
       print('Updating subscription $subscriptionId with boards: $newList');
 
-      await _databases.updateDocument(
-        databaseId: API.databaseId,
-        collectionId: API.collectionsSubscriptionsId,
-        documentId: subscriptionId!,
-        data: {'boards': newList, 'lastUpdate': now},
-      );
+      await client.from('subscriptions').update(
+          {'boards': newList, 'updated_at': now}).eq('id', subscriptionId!);
 
       subscribedBoards = newList;
       tempSubscribedBoards = List<String>.from(newList);
@@ -261,9 +247,9 @@ class BoardSelectionController {
       case 'other':
         return '기타';
       case 'dormGlobal':
-        return '글캠 기숙사';
+        return '글로벌 기숙사';
       case 'dormMedical':
-        return '메캠 기숙사';
+        return '메디컬 기숙사';
       default:
         return boardId;
     }
@@ -272,23 +258,23 @@ class BoardSelectionController {
   String getBoardDescription(String boardId) {
     switch (boardId) {
       case 'bachelor':
-        return '수강신청, 학적, 성적 등 학사 관련 공지';
+        return '수업 및 학사 일정';
       case 'scholarship':
-        return '교내/외 장학금 관련 공지';
+        return '교내외 각종 장학금';
       case 'student':
-        return '학생회, 동아리, 행사 등 학생 활동 관련 공지';
+        return '학생 생활 및 각종 행사';
       case 'job':
-        return '채용설명회, 인턴십, 취업 특강 등 취업 관련 공지';
+        return '채용 및 취업 관련 정보';
       case 'extracurricular':
-        return '비교과 프로그램, 특강, 워크샵 등';
+        return '비교과 프로그램';
       case 'other':
-        return '기타 공지사항';
+        return '기타 정보';
       case 'dormGlobal':
-        return '글로벌캠퍼스(성남) 기숙사 공지';
+        return '글로벌 캠퍼스 기숙사';
       case 'dormMedical':
-        return '메디컬캠퍼스(인천) 기숙사 공지';
+        return '메디컬 캠퍼스 기숙사';
       default:
-        return '';
+        return '게시판 설명 없음';
     }
   }
 }

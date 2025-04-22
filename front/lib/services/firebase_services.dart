@@ -1,5 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:appwrite/appwrite.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../utils/const.dart';
 import 'package:web/web.dart' as web;
 
@@ -17,21 +17,20 @@ class FirebaseService {
   NotificationCallback? _onMessageClickHandler;
 
   Future<String?> initFCM({
-    required Databases databases,
-    String? userId,
+    required String? userId,
     required Function(String token) onTokenRefresh,
     required Function(RemoteMessage message) showInAppNotification,
     required Function(RemoteMessage message) handleNotificationClick,
   }) async {
     try {
       // FCM 권한 요청
-      NotificationSettings settings = await FirebaseMessaging.instance
-          .requestPermission(
-            alert: true,
-            badge: true,
-            sound: true,
-            provisional: true,
-          );
+      NotificationSettings settings =
+          await FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        provisional: true,
+      );
       print('FCM permission status: ${settings.authorizationStatus}');
 
       // 웹 환경에서는 VAPID 키가 필요
@@ -44,7 +43,7 @@ class FirebaseService {
       if (token != null) {
         // 현재 세션이 있다면 토큰 저장
         if (userId != null) {
-          await saveFcmTokenToServer(databases, userId, token);
+          await saveFcmTokenToServer(userId, token);
         }
 
         // 토큰 갱신 리스너
@@ -52,7 +51,7 @@ class FirebaseService {
           print('FCM Token refreshed: $newToken');
           onTokenRefresh(newToken);
           if (userId != null) {
-            await saveFcmTokenToServer(databases, userId, newToken);
+            await saveFcmTokenToServer(userId, newToken);
           }
         });
 
@@ -102,35 +101,32 @@ class FirebaseService {
   }
 
   Future<void> saveFcmTokenToServer(
-    Databases databases,
     String userId,
     String fcmToken,
   ) async {
     if (fcmToken.isEmpty) return;
 
     print('Saving token "$fcmToken" for userId="$userId" to user_devices...');
-    try {
-      final existing = await databases.listDocuments(
-        databaseId: API.databaseId,
-        collectionId: API.collectionsUserDevicesId,
-        queries: [
-          Query.equal('userId', userId),
-          Query.equal('fcmToken', fcmToken),
-        ],
-      );
+    final supabase = Supabase.instance.client;
 
-      if (existing.total == 0) {
-        await databases.createDocument(
-          databaseId: API.databaseId,
-          collectionId: API.collectionsUserDevicesId,
-          documentId: 'unique()',
-          data: {
-            'userId': userId,
-            'fcmToken': fcmToken,
-            'createdAt': DateTime.now().toIso8601String(),
-          },
-        );
-        print('FCM token doc created.');
+    try {
+      // Supabase에서 기존 토큰 확인
+      final existing = await supabase
+          .from('user_devices')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('fcm_token', fcmToken)
+          .maybeSingle();
+
+      if (existing == null) {
+        // 토큰이 없으면 생성
+        await supabase.from('user_devices').insert({
+          'user_id': userId,
+          'fcm_token': fcmToken,
+          'created_at': DateTime.now().toIso8601String(),
+          'updated_at': DateTime.now().toIso8601String(),
+        });
+        print('FCM token saved.');
       } else {
         print('Token already exists in user_devices.');
       }

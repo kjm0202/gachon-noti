@@ -1,10 +1,14 @@
 class API {
-  static const String apiUrl = 'https://appwrite.ven0m.kr/v1';
-  static const String projectId = '67e9e6560004e7a4882e';
-  static const String databaseId = '67e9e74d002363ad2073';
-  static const String collectionsUserDevicesId = '67ea30ec00005253bbcd';
-  static const String collectionsPostsId = '67e9e786002ab8f320bb';
-  static const String collectionsSubscriptionsId = '67e9eaca000b43342ec1';
+  // Supabase 설정
+  static const String supabaseUrl = 'https://vjsfqkdbptigbughvgkc.supabase.co';
+  static const String supabaseAnonKey =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqc2Zxa2RicHRpZ2J1Z2h2Z2tjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUzMDU3MjEsImV4cCI6MjA2MDg4MTcyMX0.qHQPXBLm1WdhRH9K3hkUVYBvdgrTpjwjvgtDRN-cD_U';
+
+  // Firebase 설정 (FCM용)
   static const String vapidKey =
       'BDqgF19sodFma3fvtewXSNrhyr2a8G1n8E5rh8bHSvuaCq_etquIzfoKYQyauH6OjyLeYteU-BoXJz_io72BTgo';
+
+  // 구글 OAuth 설정
+  static const String googleClientId =
+      '1006219923383-jmos7nbuisvh963o7uful7rsentp9i3e.apps.googleusercontent.com';
 }
