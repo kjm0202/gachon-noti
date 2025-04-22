@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart'
+    show PlatformDispatcher, defaultTargetPlatform, kIsWeb;
 import 'package:web/web.dart' as web;
 import 'dart:async';
 
@@ -79,22 +80,15 @@ class AuthService {
       // 로그인 성공 콜백 저장 (인증 상태 변경 시 호출)
       _pendingLoginSuccess = onLoginSuccess;
 
-      String? redirectUrl;
-
-      if (kIsWeb) {
-        // 웹에서 리다이렉트 URL 설정 (origin만 사용)
-        final origin = web.window.location.origin;
-        redirectUrl = origin;
-        print('리다이렉트 URL: $redirectUrl');
-      } else {
-        // 모바일 앱에서는 딥링크 URL 설정
-        redirectUrl = 'io.supabase.flutterquickstart://login-callback';
-      }
-
       await _supabase.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: redirectUrl,
-        authScreenLaunchMode: LaunchMode.externalApplication,
+        redirectTo:
+            kIsWeb ? null : 'io.supabase.flutterquickstart://login-callback',
+        authScreenLaunchMode:
+            (defaultTargetPlatform == TargetPlatform.android ||
+                    defaultTargetPlatform == TargetPlatform.iOS)
+                ? LaunchMode.inAppBrowserView
+                : LaunchMode.externalApplication,
       );
 
       // 웹에서는 리다이렉션이 발생하므로 여기에 도달하지 않을 수 있음
