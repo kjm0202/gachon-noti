@@ -76,7 +76,9 @@ class BoardSelectionController {
           .maybeSingle();
 
       if (response != null) {
-        subscriptionId = response['id'];
+        // id 값이 int인 경우 String으로 변환
+        subscriptionId =
+            response['id'] != null ? response['id'].toString() : null;
         print('Subscription ID: $subscriptionId'); // 디버깅용 로그 추가
 
         final boardsField = response['boards'];
@@ -91,7 +93,35 @@ class BoardSelectionController {
       }
     } catch (e) {
       print('Error loading subscription: $e');
-      await createEmptySubscription(onError: onError);
+      // 여기서 중복 키 오류가 발생했다면, 이미 구독이 있다는 의미이므로 다시 로드
+      try {
+        // 이미 구독이 있을 수 있으므로, 다시 한번 조회
+        final retryResponse = await client
+            .from('subscriptions')
+            .select('id, boards')
+            .eq('user_id', userId!)
+            .maybeSingle();
+
+        if (retryResponse != null) {
+          // id 값이 int인 경우 String으로 변환
+          subscriptionId = retryResponse['id'] != null
+              ? retryResponse['id'].toString()
+              : null;
+          final boardsField = retryResponse['boards'];
+          subscribedBoards =
+              boardsField != null ? List<String>.from(boardsField) : [];
+          tempSubscribedBoards = List<String>.from(subscribedBoards);
+          print('Successfully loaded existing subscription: $subscriptionId');
+        } else {
+          // 여전히 없으면 생성 시도
+          await createEmptySubscription(onError: onError);
+        }
+      } catch (retryError) {
+        print('Error retrying subscription load: $retryError');
+        if (onError != null) {
+          onError(retryError);
+        }
+      }
     } finally {
       loading = false;
     }
@@ -101,10 +131,40 @@ class BoardSelectionController {
     if (userId == null) return;
 
     try {
+      // 생성 전에 먼저 기존 subscription이 있는지 확인
+      final existingSubscription = await client
+          .from('subscriptions')
+          .select('id')
+          .eq('user_id', userId!)
+          .maybeSingle();
+
+      if (existingSubscription != null) {
+        // id 값이 int인 경우 String으로 변환
+        subscriptionId = existingSubscription['id'] != null
+            ? existingSubscription['id'].toString()
+            : null;
+        print('Using existing subscription ID: $subscriptionId');
+
+        // 기존 구독의 boards 정보를 가져옴
+        final boardsResponse = await client
+            .from('subscriptions')
+            .select('boards')
+            .eq('id', subscriptionId!)
+            .single();
+
+        final boardsField = boardsResponse['boards'];
+        subscribedBoards =
+            boardsField != null ? List<String>.from(boardsField) : [];
+        tempSubscribedBoards = List<String>.from(subscribedBoards);
+        loading = false;
+        return;
+      }
+
+      // 기존 구독이 없으면 새로 생성
       final now = DateTime.now().toIso8601String();
 
       final data = {
-        'boards': [],
+        'boards': <String>[],
         'user_id': userId,
         'created_at': now,
         'updated_at': now
@@ -115,7 +175,9 @@ class BoardSelectionController {
       final response =
           await client.from('subscriptions').insert(data).select('id').single();
 
-      subscriptionId = response['id'];
+      // id 값이 int인 경우 String으로 변환
+      subscriptionId =
+          response['id'] != null ? response['id'].toString() : null;
       print('Created subscription with ID: $subscriptionId'); // 디버깅용 로그 추가
 
       subscribedBoards = [];
@@ -123,9 +185,36 @@ class BoardSelectionController {
       loading = false;
     } catch (err) {
       print('Error creating subscription: $err');
-      loading = false;
-      if (onError != null) {
-        onError(err);
+      // 중복 키 오류인 경우 다시 로드 시도
+      if (err.toString().contains('duplicate key') ||
+          err.toString().contains('unique constraint')) {
+        try {
+          final existingResponse = await client
+              .from('subscriptions')
+              .select('id, boards')
+              .eq('user_id', userId!)
+              .single();
+
+          // id 값이 int인 경우 String으로 변환
+          subscriptionId = existingResponse['id'] != null
+              ? existingResponse['id'].toString()
+              : null;
+          final boardsField = existingResponse['boards'];
+          subscribedBoards =
+              boardsField != null ? List<String>.from(boardsField) : [];
+          tempSubscribedBoards = List<String>.from(subscribedBoards);
+          print('Recovered with existing subscription ID: $subscriptionId');
+        } catch (retryError) {
+          print('Error recovering from duplicate key: $retryError');
+          if (onError != null) {
+            onError(retryError);
+          }
+        }
+      } else {
+        loading = false;
+        if (onError != null) {
+          onError(err);
+        }
       }
     }
   }
