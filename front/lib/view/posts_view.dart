@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:appwrite/appwrite.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_auto_size_text/flutter_auto_size_text.dart';
 import 'package:gachon_noti_front/utils/alternative_text_style.dart';
 import 'package:gachon_noti_front/utils/korean_wrapper.dart';
@@ -8,7 +8,7 @@ import 'package:intl/intl.dart';
 import '../controller/posts_controller.dart';
 
 class PostsView extends StatefulWidget {
-  final Client client;
+  final SupabaseClient client;
   final String boardId;
   final PostsController? controller; // 외부에서 생성된 컨트롤러 인스턴스 (선택적)
 

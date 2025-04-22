@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:appwrite/appwrite.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gachon_noti_front/theme.dart';
 import 'package:web/web.dart' as web;
 
@@ -10,9 +10,7 @@ import '../utils/version_checker.dart';
 
 // 실제 앱 컨텐츠 (PWA 모드일 때 표시)
 class AppContentView extends StatefulWidget {
-  final Client client;
-
-  const AppContentView({super.key, required this.client});
+  const AppContentView({super.key});
 
   @override
   State<AppContentView> createState() => _AppContentViewState();
@@ -30,7 +28,7 @@ class _AppContentViewState extends State<AppContentView> {
   }
 
   Future<void> _initApp() async {
-    _authService.init(widget.client);
+    _authService.init();
     await _authService.checkCurrentSession();
     setState(() {
       _initialized = true;
@@ -103,7 +101,7 @@ class _AppContentViewState extends State<AppContentView> {
   Widget _buildMainContent() {
     return Scaffold(
       body: _authService.isLoggedIn
-          ? HomePage(client: widget.client)
+          ? const HomePage()
           : LoginPage(
               onLoginSuccess: () {
                 setState(() {}); // 로그인 후 화면 갱신

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:appwrite/appwrite.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gachon_noti_front/utils/alternative_text_style.dart';
 import '../controller/subscription_controller.dart';
 
 class SubscriptionView extends StatefulWidget {
-  final Client client;
+  final SupabaseClient client;
   final Function? onSubscriptionChange; // 구독 변경 시 호출될 콜백
 
   const SubscriptionView(

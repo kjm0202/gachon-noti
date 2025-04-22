@@ -1,11 +1,64 @@
-import 'package:appwrite/appwrite.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../utils/const.dart';
 
-class PostsController {
-  final Client client;
+class Post {
+  final String id;
   final String boardId;
-  late Account _account;
-  late Databases _databases;
+  final String title;
+  final String? description;
+  final String link;
+  final String? author;
+  final DateTime createdAt;
+
+  Post({
+    required this.id,
+    required this.boardId,
+    required this.title,
+    this.description,
+    required this.link,
+    this.author,
+    required this.createdAt,
+  });
+
+  factory Post.fromMap(Map<String, dynamic> map) {
+    return Post(
+      id: map['id'],
+      boardId: map['board_id'],
+      title: map['title'],
+      description: map['description'],
+      link: map['link'],
+      author: map['author'],
+      createdAt: DateTime.parse(map['created_at']),
+    );
+  }
+
+  String getBoardName() {
+    switch (boardId) {
+      case 'bachelor':
+        return '학사';
+      case 'scholarship':
+        return '장학';
+      case 'student':
+        return '학생';
+      case 'job':
+        return '취업';
+      case 'extracurricular':
+        return '비교과';
+      case 'other':
+        return '기타';
+      case 'dormGlobal':
+        return '글로벌 기숙사';
+      case 'dormMedical':
+        return '메디컬 기숙사';
+      default:
+        return boardId;
+    }
+  }
+}
+
+class PostsController {
+  final SupabaseClient client;
+  final String boardId;
   List<Map<String, dynamic>> posts = [];
   List<Map<String, dynamic>> filteredPosts = []; // 필터링된 게시물 목록
   bool loading = true;
@@ -20,10 +73,7 @@ class PostsController {
   // 캐시 유효 시간 (5분)
   static const Duration _cacheDuration = Duration(minutes: 5);
 
-  PostsController({required this.client, required this.boardId}) {
-    _account = Account(client);
-    _databases = Databases(client);
-  }
+  PostsController({required this.client, required this.boardId});
 
   Future<void> initUserAndFetchPosts({
     Function? onSuccess,
@@ -38,18 +88,22 @@ class PostsController {
 
       // 구독한 게시판 정보 로드
       if (_cachedSubscribedBoards.isEmpty || !isCacheValid) {
-        final user = await _account.get();
+        final user = await client.auth.currentUser;
 
-        // userId로 구독 문서 찾기
-        final subscriptions = await _databases.listDocuments(
-          databaseId: API.databaseId,
-          collectionId: API.collectionsSubscriptionsId,
-          queries: [Query.equal('userId', user.$id)],
-        );
+        if (user != null) {
+          // userId로 구독 문서 찾기
+          final response = await client
+              .from('subscriptions')
+              .select('boards')
+              .eq('user_id', user.id)
+              .maybeSingle();
 
-        if (subscriptions.documents.isNotEmpty) {
-          final doc = subscriptions.documents.first;
-          _cachedSubscribedBoards = List<String>.from(doc.data['boards'] ?? []);
+          if (response != null) {
+            _cachedSubscribedBoards =
+                List<String>.from(response['boards'] ?? []);
+          } else {
+            _cachedSubscribedBoards = [];
+          }
         } else {
           _cachedSubscribedBoards = [];
         }
@@ -103,19 +157,21 @@ class PostsController {
         return;
       }
 
-      final result = await _databases.listDocuments(
-        databaseId: API.databaseId,
-        collectionId: API.collectionsPostsId,
-        queries: [
-          Query.equal('boardId', targetBoards),
-          Query.orderDesc('pubDate'),
-          Query.limit(50),
-        ],
-      );
+      var queryBuilder = client.from('posts').select();
 
-      posts = result.documents.map((doc) {
-        // description이 없는 경우 빈 문자열로 설정
-        final data = doc.data;
+      // 게시판 필터링
+      if (boardId != 'all') {
+        queryBuilder = queryBuilder.eq('board_id', boardId);
+      } else if (subscribedBoards.isNotEmpty) {
+        queryBuilder = queryBuilder.inFilter('board_id', subscribedBoards);
+      }
+
+      final data =
+          await queryBuilder.order('created_at', ascending: false).limit(50);
+
+      posts = (data as List<dynamic>).map((doc) {
+        // Map 형태로 변환하여 'description'이 없으면 빈 문자열로 설정
+        final Map<String, dynamic> data = Map<String, dynamic>.from(doc);
         if (data['description'] == null) {
           data['description'] = '';
         }
@@ -169,7 +225,7 @@ class PostsController {
     // 'all'이 아닌 경우에만 태그 필터링 적용
     if (selectedTagFilter != 'all') {
       tempFiltered = tempFiltered.where((post) {
-        return post['boardId'] == selectedTagFilter;
+        return post['board_id'] == selectedTagFilter;
       }).toList();
     }
 
@@ -207,13 +263,33 @@ class PostsController {
       case 'other':
         return '기타';
       case 'dormGlobal':
-        return '글캠 기숙사';
+        return '글로벌 기숙사';
       case 'dormMedical':
-        return '메캠 기숙사';
+        return '메디컬 기숙사';
       case 'all':
         return '전체 게시물';
       default:
         return boardId;
+    }
+  }
+
+  Future<List<String>> getUserSubscribedBoards(String userId) async {
+    try {
+      final response = await client
+          .from('subscriptions')
+          .select('boards')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (response == null) {
+        return [];
+      }
+
+      final boardsField = response['boards'];
+      return boardsField != null ? List<String>.from(boardsField) : [];
+    } catch (e) {
+      print('Error fetching user subscriptions: $e');
+      return [];
     }
   }
 }

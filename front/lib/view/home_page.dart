@@ -1,7 +1,7 @@
 import 'dart:js_interop';
 
 import 'package:flutter/material.dart';
-import 'package:appwrite/appwrite.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_auto_size_text/flutter_auto_size_text.dart';
 import 'package:gachon_noti_front/utils/alternative_text_style.dart';
@@ -17,9 +17,7 @@ import '../utils/korean_wrapper.dart';
 import '../controller/posts_controller.dart'; // PostsController 임포트 추가
 
 class HomePage extends StatefulWidget {
-  final Client client;
-
-  const HomePage({super.key, required this.client});
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -28,7 +26,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final _authService = AuthService();
   final _firebaseService = FirebaseService();
-  late Databases _databases;
+  final _supabaseClient = Supabase.instance.client;
   String? _fcmToken;
   int _currentIndex = 0;
   bool _isNotificationDenied = false; // 알림 권한 거부 상태 저장
@@ -47,18 +45,17 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _databases = Databases(widget.client);
 
     // PostsController 인스턴스 생성
-    _postsController = PostsController(client: widget.client, boardId: 'all');
+    _postsController = PostsController(client: _supabaseClient, boardId: 'all');
 
     // 페이지 초기화
     _pages = [
       SubscriptionView(
-          client: widget.client,
+          client: _supabaseClient,
           onSubscriptionChange: _handleSubscriptionChange),
       PostsView(
-        client: widget.client,
+        client: _supabaseClient,
         boardId: 'all',
         controller: _postsController,
       ),
@@ -199,13 +196,12 @@ class _HomePageState extends State<HomePage> {
         context: context,
         barrierDismissible: false,
         builder: (context) => AlertDialog(
-          title: Text('알림 권한 요청'),
-          content: Text('\'확인\' 버튼을 누른 뒤 나오는 팝업에서 알림 권한을 허용해주세요.'.wrapped),
+          title: Text('알림 활성화'),
+          content: Text('새로운 공지사항을 받으려면 알림을 허용해 주세요.'),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                // 권한 요청 직후 상태 변경 감지 시작
                 _requestNotificationPermission();
               },
               child: Text('확인'),
@@ -216,7 +212,6 @@ class _HomePageState extends State<HomePage> {
     }
 
     _fcmToken = await _firebaseService.initFCM(
-      databases: _databases,
       userId: _authService.userId,
       onTokenRefresh: (token) {
         setState(() {
