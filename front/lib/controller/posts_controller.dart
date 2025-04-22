@@ -167,7 +167,7 @@ class PostsController {
       }
 
       final data =
-          await queryBuilder.order('created_at', ascending: false).limit(50);
+          await queryBuilder.order('pub_date', ascending: false).limit(50);
 
       posts = (data as List<dynamic>).map((doc) {
         // Map 형태로 변환하여 'description'이 없으면 빈 문자열로 설정

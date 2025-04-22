@@ -114,6 +114,7 @@ async function main() {
             description,
             author,
             created_at: new Date().toISOString(),
+            pub_date: pubDate,
           })
           .select()
           .single();

@@ -295,7 +295,7 @@ class _PostsViewState extends State<PostsView> {
                   post['board_id'] ?? '',
                 );
                 print('게시물 보드 ID: ${post['board_id']} => 게시판 이름: $boardName');
-                final String dateStr = _formatDate(post['pubDate']);
+                final String dateStr = _formatDate(post['pub_date']);
 
                 return Card(
                   margin: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
