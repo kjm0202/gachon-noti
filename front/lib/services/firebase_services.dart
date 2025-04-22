@@ -139,7 +139,7 @@ class FirebaseService {
     final data = message.data;
 
     // 메시지 데이터에 'boardId'와 'link' 필드가 있는지 확인
-    final String? boardId = data['boardId'];
+    // final String? boardId = data['boardId'];
     final String? link = data['link'];
 
     if (link != null && link.isNotEmpty) {

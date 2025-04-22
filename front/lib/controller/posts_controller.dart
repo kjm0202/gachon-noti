@@ -1,5 +1,4 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../utils/const.dart';
 
 class Post {
   final String id;
@@ -62,9 +61,15 @@ class PostsController {
   List<Map<String, dynamic>> posts = [];
   List<Map<String, dynamic>> filteredPosts = []; // 필터링된 게시물 목록
   bool loading = true;
+  bool loadingMore = false; // 추가 데이터 로딩 중 상태
   List<String> subscribedBoards = [];
   String searchQuery = ''; // 검색어
   String selectedTagFilter = 'all'; // 선택된 태그 필터, 기본값은 'all'
+
+  // 페이지네이션 관련 변수
+  int _page = 1;
+  int _limit = 20; // 한 번에 가져올 게시물 수
+  bool hasMoreData = true; // 더 가져올 데이터가 있는지 여부
 
   // 캐싱 관련 변수
   static Map<String, List<Map<String, dynamic>>> _cachedPosts = {};
@@ -74,6 +79,14 @@ class PostsController {
   static const Duration _cacheDuration = Duration(minutes: 5);
 
   PostsController({required this.client, required this.boardId});
+
+  // 페이지를 리셋하고 처음부터 데이터를 가져오는 메소드
+  void resetPagination() {
+    _page = 1;
+    hasMoreData = true;
+    posts = [];
+    filteredPosts = [];
+  }
 
   Future<void> initUserAndFetchPosts({
     Function? onSuccess,
@@ -112,6 +125,8 @@ class PostsController {
       // 캐시된 구독 보드 정보를 현재 컨트롤러에 설정
       subscribedBoards = _cachedSubscribedBoards;
 
+      // 페이지네이션 리셋 후 첫 페이지 로드
+      resetPagination();
       await fetchPosts(onSuccess: onSuccess, useCache: isCacheValid);
     } catch (e) {
       print('Error initializing: $e');
@@ -129,8 +144,13 @@ class PostsController {
       Function? onError,
       bool useCache = true,
       bool forceRefresh = false}) async {
-    loading = true;
-    if (onSuccess != null) onSuccess();
+    // 첫 페이지를 로드하는 경우에만 loading을 true로 설정
+    if (_page == 1) {
+      loading = true;
+      if (onSuccess != null) onSuccess();
+    } else {
+      loadingMore = true;
+    }
 
     try {
       List<String> targetBoards =
@@ -140,19 +160,27 @@ class PostsController {
         posts = [];
         filteredPosts = [];
         loading = false;
+        loadingMore = false;
+        hasMoreData = false;
         if (onSuccess != null) onSuccess();
         return;
       }
 
-      // 캐시 키 생성 (boardId 또는 'all'+'구독 게시판 목록' 조합)
-      final String cacheKey =
-          boardId == 'all' ? 'all_${subscribedBoards.join('_')}' : boardId;
+      // 캐시 키 생성 (boardId + 페이지 또는 'all'+구독 게시판 목록 + 페이지 조합)
+      final String cacheKey = boardId == 'all'
+          ? 'all_${subscribedBoards.join('_')}_page$_page'
+          : '${boardId}_page$_page';
 
       // 캐시 사용 가능하고 강제 새로고침이 아닌 경우, 캐시된 데이터 사용
-      if (useCache && !forceRefresh && _cachedPosts.containsKey(cacheKey)) {
+      if (_page == 1 &&
+          useCache &&
+          !forceRefresh &&
+          _cachedPosts.containsKey(cacheKey)) {
+        // 첫 페이지만 캐시 사용
         posts = List.from(_cachedPosts[cacheKey]!);
         filteredPosts = List.from(posts);
         loading = false;
+        loadingMore = false;
         if (onSuccess != null) onSuccess();
         return;
       }
@@ -166,10 +194,13 @@ class PostsController {
         queryBuilder = queryBuilder.inFilter('board_id', subscribedBoards);
       }
 
-      final data =
-          await queryBuilder.order('pub_date', ascending: false).limit(50);
+      // 페이지네이션 적용 - 최신순으로 정렬하고 페이지 크기만큼 가져옴
+      final int start = (_page - 1) * _limit;
+      final data = await queryBuilder
+          .order('pub_date', ascending: false)
+          .range(start, start + _limit - 1);
 
-      posts = (data as List<dynamic>).map((doc) {
+      final newPosts = (data as List<dynamic>).map((doc) {
         // Map 형태로 변환하여 'description'이 없으면 빈 문자열로 설정
         final Map<String, dynamic> data = Map<String, dynamic>.from(doc);
         if (data['description'] == null) {
@@ -178,26 +209,55 @@ class PostsController {
         return data;
       }).toList();
 
-      // 캐시 업데이트
-      _cachedPosts[cacheKey] = List.from(posts);
-      _lastFetchTime = DateTime.now();
+      // 더 가져올 데이터가 있는지 확인
+      hasMoreData = newPosts.length == _limit;
 
-      // 초기에는 필터링된 게시물 목록과 전체 게시물 목록이 동일
-      filteredPosts = List.from(posts);
+      // 페이지가 1이면 posts를 새로 설정, 아니면 기존 posts에 추가
+      if (_page == 1) {
+        posts = newPosts;
+      } else {
+        posts.addAll(newPosts);
+      }
+
+      // 캐시 업데이트 (첫 페이지만)
+      if (_page == 1) {
+        _cachedPosts[cacheKey] = List.from(posts);
+        _lastFetchTime = DateTime.now();
+      }
+
+      // 필터링된 게시물 목록 업데이트
+      _applyFilters();
+
+      // 페이지 증가
+      _page++;
 
       loading = false;
+      loadingMore = false;
       if (onSuccess != null) onSuccess();
     } catch (err) {
       print('Error fetching posts: $err');
       loading = false;
+      loadingMore = false;
       if (onError != null) {
         onError(err);
       }
     }
   }
 
+  // 다음 페이지 로드
+  Future<void> loadMorePosts({Function? onSuccess, Function? onError}) async {
+    if (loadingMore || !hasMoreData) return; // 이미 로딩 중이거나 더 이상 데이터가 없으면 리턴
+
+    await fetchPosts(
+      onSuccess: onSuccess,
+      onError: onError,
+      useCache: false,
+    );
+  }
+
   // 강제 새로고침 수행
   Future<void> forceRefresh({Function? onSuccess, Function? onError}) async {
+    resetPagination(); // 페이지네이션 리셋
     await fetchPosts(
         onSuccess: onSuccess,
         onError: onError,
@@ -212,9 +272,99 @@ class PostsController {
   }
 
   // 태그로 게시물 필터링
-  void filterByTag(String tag) {
+  Future<void> filterByTag(String tag,
+      {Function? onSuccess, Function? onError}) async {
     selectedTagFilter = tag;
-    _applyFilters();
+
+    try {
+      loading = true;
+      // 페이지네이션 리셋
+      resetPagination();
+
+      if (tag == 'all') {
+        // 'all'인 경우 모든 구독 게시판의 게시물 새로 가져오기
+        if (subscribedBoards.isEmpty) {
+          // 구독 게시판이 없는 경우
+          posts = [];
+          filteredPosts = [];
+          loading = false;
+          if (onSuccess != null) onSuccess();
+          return;
+        }
+
+        // 캐시 키 생성
+        final String cacheKey = 'all_${subscribedBoards.join('_')}_page1';
+
+        // 모든 구독 게시판의 게시물 로드
+        final data = await client
+            .from('posts')
+            .select()
+            .inFilter('board_id', subscribedBoards)
+            .order('pub_date', ascending: false)
+            .limit(_limit); // 페이지당 크기만큼만 가져옴
+
+        // 결과 처리
+        posts = (data as List<dynamic>).map((doc) {
+          final Map<String, dynamic> postData = Map<String, dynamic>.from(doc);
+          if (postData['description'] == null) {
+            postData['description'] = '';
+          }
+          return postData;
+        }).toList();
+
+        // 더 가져올 데이터가 있는지 확인
+        hasMoreData = posts.length == _limit;
+
+        // 페이지 증가
+        _page = 2;
+
+        // 캐시 업데이트
+        _cachedPosts[cacheKey] = List.from(posts);
+        _lastFetchTime = DateTime.now();
+
+        // 필터링된 결과와 전체 결과 동일하게 설정
+        filteredPosts = List.from(posts);
+      } else {
+        // 특정 게시판의 게시물만 가져오는 쿼리 직접 실행
+        final data = await client
+            .from('posts')
+            .select()
+            .eq('board_id', tag) // 선택한 태그로 필터링
+            .order('pub_date', ascending: false)
+            .limit(_limit); // 페이지당 크기만큼만 가져옴
+
+        // 결과 처리
+        posts = (data as List<dynamic>).map((doc) {
+          final Map<String, dynamic> postData = Map<String, dynamic>.from(doc);
+          if (postData['description'] == null) {
+            postData['description'] = '';
+          }
+          return postData;
+        }).toList();
+
+        // 더 가져올 데이터가 있는지 확인
+        hasMoreData = posts.length == _limit;
+
+        // 페이지 증가
+        _page = 2;
+
+        // 캐시 업데이트
+        _cachedPosts[tag + '_page1'] = List.from(posts);
+        _lastFetchTime = DateTime.now();
+
+        // 필터링된 결과와 전체 결과 동일하게 설정
+        filteredPosts = List.from(posts);
+      }
+
+      loading = false;
+      if (onSuccess != null) onSuccess();
+    } catch (err) {
+      print('Error fetching posts for tag $tag: $err');
+      loading = false;
+      if (onError != null) {
+        onError(err);
+      }
+    }
   }
 
   // 검색어와 태그 필터 모두 적용

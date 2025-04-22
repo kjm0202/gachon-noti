@@ -193,7 +193,7 @@ class _SubscriptionViewState extends State<SubscriptionView> {
                         label: Text(
                           '저장',
                           style: AltTextStyle.bodyLarge
-                              ?.copyWith(color: Colors.white),
+                              .copyWith(color: Colors.white),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Theme.of(context).primaryColor,
