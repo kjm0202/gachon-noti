@@ -1,6 +1,6 @@
 class API {
   static const String apiUrl = 'https://appwrite.ven0m.kr/v1';
-  static const String projectId = '67e9e6560004e7a4882e';
+  static const String projectId = '6806691b0014b869cdfc';
   static const String databaseId = '67e9e74d002363ad2073';
   static const String collectionsUserDevicesId = '67ea30ec00005253bbcd';
   static const String collectionsPostsId = '67e9e786002ab8f320bb';
