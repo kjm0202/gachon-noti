@@ -84,9 +84,7 @@ class AuthService {
 
       if (kIsWeb) {
         // 웹에서 리다이렉트 URL 설정 (origin만 사용)
-        final origin = web.window.location.origin;
-        redirectUrl = '$origin/auth.html';
-        print('리다이렉트 URL: $redirectUrl');
+        redirectUrl = web.window.location.origin;
       } else {
         // 모바일 앱에서는 딥링크 URL 설정
         redirectUrl = 'io.supabase.flutterquickstart://login-callback';
@@ -94,7 +92,7 @@ class AuthService {
 
       await _supabase.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: null,
+        redirectTo: redirectUrl,
         authScreenLaunchMode:
             (defaultTargetPlatform == TargetPlatform.android ||
                     defaultTargetPlatform == TargetPlatform.iOS)

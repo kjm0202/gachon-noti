@@ -292,8 +292,9 @@ class _PostsViewState extends State<PostsView> {
               itemBuilder: (context, idx) {
                 final post = _controller.filteredPosts[idx];
                 final String boardName = _controller.getBoardName(
-                  post['boardId'] ?? '',
+                  post['board_id'] ?? '',
                 );
+                print('게시물 보드 ID: ${post['board_id']} => 게시판 이름: $boardName');
                 final String dateStr = _formatDate(post['pubDate']);
 
                 return Card(

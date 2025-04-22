@@ -62,6 +62,20 @@ class _HomePageState extends State<HomePage> {
     ];
 
     _initServices();
+    // Supabase 인증 상태 확인 및 콘솔 출력
+    _supabaseClient.auth.onAuthStateChange.listen((data) {
+      final AuthChangeEvent event = data.event;
+      final Session? session = data.session;
+
+      print('Supabase 인증 상태 변경: $event');
+
+      if (session != null) {
+        print('현재 로그인된 사용자: ${session.user.email}');
+        print('사용자 ID: ${session.user.id}');
+      } else {
+        print('로그인된 사용자 없음');
+      }
+    });
   }
 
   @override
