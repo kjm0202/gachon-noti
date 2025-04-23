@@ -1,27 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:web/web.dart' as web;
 import 'dart:async';
 
-class AuthService {
-  static final AuthService _instance = AuthService._internal();
+import 'supabase_provider.dart';
 
-  factory AuthService() => _instance;
+class AuthProvider extends GetxService {
+  final SupabaseProvider _supabaseProvider = Get.find<SupabaseProvider>();
 
-  AuthService._internal();
+  final RxString userId = RxString('');
+  final RxString userEmail = RxString('');
+  final RxBool isLoggedIn = false.obs;
 
-  late final SupabaseClient _supabase;
-  String? _userId;
-  String? _userEmail;
   StreamSubscription<AuthState>? _authSubscription;
   Function? _pendingLoginSuccess;
 
-  void init() {
-    _supabase = Supabase.instance.client;
-
+  Future<AuthProvider> init() async {
     // 인증 상태 변화 구독
-    _authSubscription = _supabase.auth.onAuthStateChange.listen((data) {
+    _authSubscription =
+        _supabaseProvider.client.auth.onAuthStateChange.listen((data) {
       final AuthChangeEvent event = data.event;
       final Session? session = data.session;
 
@@ -29,8 +28,9 @@ class AuthService {
 
       if (event == AuthChangeEvent.signedIn && session != null) {
         print('로그인 성공: ${session.user.email}');
-        _userId = session.user.id;
-        _userEmail = session.user.email;
+        userId.value = session.user.id;
+        userEmail.value = session.user.email ?? '';
+        isLoggedIn.value = true;
 
         // 보류 중인 성공 콜백이 있으면 실행
         if (_pendingLoginSuccess != null) {
@@ -39,39 +39,44 @@ class AuthService {
         }
       } else if (event == AuthChangeEvent.signedOut) {
         print('로그아웃');
-        _userId = null;
-        _userEmail = null;
+        userId.value = '';
+        userEmail.value = '';
+        isLoggedIn.value = false;
       }
     });
+
+    await checkCurrentSession();
+
+    return this;
   }
 
-  void dispose() {
+  @override
+  void onClose() {
     _authSubscription?.cancel();
+    super.onClose();
   }
-
-  String? get userId => _userId;
-  String? get userEmail => _userEmail;
-  bool get isLoggedIn => _userId != null;
 
   Future<bool> checkCurrentSession() async {
     try {
-      final currentUser = _supabase.auth.currentUser;
+      final currentUser = _supabaseProvider.client.auth.currentUser;
       if (currentUser != null) {
-        _userEmail = currentUser.email;
-        _userId = currentUser.id;
+        userEmail.value = currentUser.email ?? '';
+        userId.value = currentUser.id;
+        isLoggedIn.value = true;
         return true;
       }
+      isLoggedIn.value = false;
       return false;
     } catch (e) {
       print('No active session: $e');
-      _userEmail = null;
-      _userId = null;
+      userEmail.value = '';
+      userId.value = '';
+      isLoggedIn.value = false;
       return false;
     }
   }
 
   Future<bool> loginWithGoogle({
-    required BuildContext context,
     required Function onLoginSuccess,
     required Function onLoginFailed,
   }) async {
@@ -89,7 +94,7 @@ class AuthService {
         redirectUrl = 'io.supabase.flutterquickstart://login-callback';
       }
 
-      await _supabase.auth.signInWithOAuth(
+      await _supabaseProvider.client.auth.signInWithOAuth(
         OAuthProvider.google,
         redirectTo: redirectUrl,
         authScreenLaunchMode:
@@ -107,20 +112,22 @@ class AuthService {
       onLoginFailed();
       _pendingLoginSuccess = null;
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('로그인에 실패했습니다. 다시 시도해주세요.')));
-      }
+      Get.snackbar(
+        '로그인 실패',
+        '로그인에 실패했습니다. 다시 시도해주세요.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+
       return false;
     }
   }
 
   Future<bool> logout() async {
     try {
-      await _supabase.auth.signOut();
-      _userEmail = null;
-      _userId = null;
+      await _supabaseProvider.client.auth.signOut();
+      userEmail.value = '';
+      userId.value = '';
+      isLoggedIn.value = false;
       return true;
     } catch (e) {
       print('Logout error: $e');

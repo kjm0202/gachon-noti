@@ -7,7 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_auto_size_text/flutter_auto_size_text.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pwa_install/pwa_install.dart';
-import '../theme.dart';
+import 'package:get/get.dart';
+import '../../theme.dart';
 
 // PWA 모드가 아닐 때 표시되는 화면
 class PwaInstallView extends StatelessWidget {
@@ -17,7 +18,7 @@ class PwaInstallView extends StatelessWidget {
   Widget build(BuildContext context) {
     final materialTheme = MaterialTheme(Theme.of(context).textTheme);
 
-    return MaterialApp(
+    return GetMaterialApp(
       title: '가천 알림이',
       theme: materialTheme.light(),
       darkTheme: materialTheme.dark(),

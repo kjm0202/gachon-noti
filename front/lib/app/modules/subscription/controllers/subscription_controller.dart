@@ -1,14 +1,16 @@
+import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../data/providers/supabase_provider.dart';
 
-class BoardSelectionController {
-  final SupabaseClient client;
-  String? userId;
-  bool loading = true;
-  String? subscriptionId;
-  List<String> subscribedBoards = [];
-  List<String> tempSubscribedBoards = [];
-  bool get hasChanges =>
-      !_areListsEqual(subscribedBoards, tempSubscribedBoards);
+class SubscriptionController extends GetxController {
+  final SupabaseProvider _supabaseProvider = Get.find<SupabaseProvider>();
+  final RxString userId = RxString('');
+  final RxBool loading = true.obs;
+  final RxString subscriptionId = RxString('');
+  final RxList<String> subscribedBoards = <String>[].obs;
+  final RxList<String> tempSubscribedBoards = <String>[].obs;
+
+  final RxBool hasChanges = false.obs;
 
   final List<String> allBoards = [
     'bachelor',
@@ -21,7 +23,19 @@ class BoardSelectionController {
     'dormMedical',
   ];
 
-  BoardSelectionController({required this.client});
+  @override
+  void onInit() {
+    super.onInit();
+    initUserAndLoadSubscription();
+
+    // hasChanges 리액티브 업데이트를 위한 리스너 설정
+    ever(subscribedBoards, (_) => _checkForChanges());
+    ever(tempSubscribedBoards, (_) => _checkForChanges());
+  }
+
+  void _checkForChanges() {
+    hasChanges.value = !_areListsEqual(subscribedBoards, tempSubscribedBoards);
+  }
 
   bool _areListsEqual(List<String> list1, List<String> list2) {
     if (list1.length != list2.length) return false;
@@ -36,59 +50,50 @@ class BoardSelectionController {
     return true;
   }
 
-  Future<void> initUserAndLoadSubscription({
-    Function? onError,
-    Function? onFinally,
-  }) async {
+  Future<void> initUserAndLoadSubscription() async {
     try {
-      final user = client.auth.currentUser;
+      final user = _supabaseProvider.client.auth.currentUser;
       if (user == null) {
         throw Exception('사용자가 로그인하지 않았습니다.');
       }
 
-      userId = user.id;
-      print('사용자 정보 로드 성공: userId=$userId');
+      userId.value = user.id;
+      print('사용자 정보 로드 성공: userId=${userId.value}');
 
-      await loadUserSubscription(onError: onError);
+      await loadUserSubscription();
     } catch (e) {
       print('사용자 정보 로드 실패: $e');
-      loading = false;
-      if (onError != null) {
-        onError(e);
-      }
-    } finally {
-      if (onFinally != null) {
-        onFinally();
-      }
+      loading.value = false;
     }
   }
 
-  Future<void> loadUserSubscription({Function? onError}) async {
-    if (userId == null) return;
+  Future<void> loadUserSubscription() async {
+    if (userId.isEmpty) return;
 
     try {
-      print('사용자 구독 정보 조회 시도: userId=$userId');
+      print('사용자 구독 정보 조회 시도: userId=${userId.value}');
 
-      final response = await client
+      final response = await _supabaseProvider.client
           .from('subscriptions')
           .select('id, boards')
-          .eq('user_id', userId!)
+          .eq('user_id', userId.value)
           .maybeSingle();
 
       if (response != null) {
         // id 값이 int인 경우 String으로 변환
-        subscriptionId =
-            response['id'] != null ? response['id'].toString() : null;
+        subscriptionId.value =
+            response['id'] != null ? response['id'].toString() : '';
 
         final boardsField = response['boards'];
-        subscribedBoards =
+        subscribedBoards.value =
             boardsField != null ? List<String>.from(boardsField) : [];
-        tempSubscribedBoards = List<String>.from(subscribedBoards);
+        tempSubscribedBoards.value = List<String>.from(subscribedBoards);
 
-        print('구독 정보 로드 성공: ID=$subscriptionId, boards=$subscribedBoards');
+        print(
+            '구독 정보 로드 성공: ID=${subscriptionId.value}, boards=${subscribedBoards.value}');
       } else {
         print('구독 정보가 없음, 새 구독 생성 시도');
-        await createEmptySubscription(onError: onError);
+        await createEmptySubscription();
       }
     } catch (e) {
       print('구독 정보 로드 실패: $e');
@@ -96,71 +101,68 @@ class BoardSelectionController {
       try {
         print('오류 발생, 구독 정보 재시도');
         // 이미 구독이 있을 수 있으므로, 다시 한번 조회
-        final retryResponse = await client
+        final retryResponse = await _supabaseProvider.client
             .from('subscriptions')
             .select('id, boards')
-            .eq('user_id', userId!)
+            .eq('user_id', userId.value)
             .maybeSingle();
 
         if (retryResponse != null) {
           // id 값이 int인 경우 String으로 변환
-          subscriptionId = retryResponse['id'] != null
-              ? retryResponse['id'].toString()
-              : null;
+          subscriptionId.value =
+              retryResponse['id'] != null ? retryResponse['id'].toString() : '';
           final boardsField = retryResponse['boards'];
-          subscribedBoards =
+          subscribedBoards.value =
               boardsField != null ? List<String>.from(boardsField) : [];
-          tempSubscribedBoards = List<String>.from(subscribedBoards);
-          print('구독 정보 재시도 성공: ID=$subscriptionId, boards=$subscribedBoards');
+          tempSubscribedBoards.value = List<String>.from(subscribedBoards);
+          print(
+              '구독 정보 재시도 성공: ID=${subscriptionId.value}, boards=${subscribedBoards.value}');
         } else {
           // 여전히 없으면 생성 시도
           print('구독 정보가 여전히 없음, 새 구독 생성 시도');
-          await createEmptySubscription(onError: onError);
+          await createEmptySubscription();
         }
       } catch (retryError) {
         print('구독 정보 재시도 실패: $retryError');
-        if (onError != null) {
-          onError(retryError);
-        }
       }
     } finally {
-      loading = false;
+      loading.value = false;
     }
   }
 
-  Future<void> createEmptySubscription({Function? onError}) async {
-    if (userId == null) return;
+  Future<void> createEmptySubscription() async {
+    if (userId.isEmpty) return;
 
     try {
       // 생성 전에 먼저 기존 subscription이 있는지 확인
-      print('기존 구독 검색 시도: userId=$userId');
-      final existingSubscription = await client
+      print('기존 구독 검색 시도: userId=${userId.value}');
+      final existingSubscription = await _supabaseProvider.client
           .from('subscriptions')
           .select('id')
-          .eq('user_id', userId!)
+          .eq('user_id', userId.value)
           .maybeSingle();
 
       if (existingSubscription != null) {
         // id 값이 int인 경우 String으로 변환
-        subscriptionId = existingSubscription['id'] != null
+        subscriptionId.value = existingSubscription['id'] != null
             ? existingSubscription['id'].toString()
-            : null;
-        print('기존 구독 발견: ID=$subscriptionId');
+            : '';
+        print('기존 구독 발견: ID=${subscriptionId.value}');
 
         // 기존 구독의 boards 정보를 가져옴
         print('기존 구독의 게시판 정보 조회 시도');
-        final boardsResponse = await client
+        final boardsResponse = await _supabaseProvider.client
             .from('subscriptions')
             .select('boards')
-            .eq('id', subscriptionId!)
+            .eq('id', subscriptionId.value)
             .single();
 
         final boardsField = boardsResponse['boards'];
-        subscribedBoards =
+        subscribedBoards.value =
             boardsField != null ? List<String>.from(boardsField) : [];
-        tempSubscribedBoards = List<String>.from(subscribedBoards);
-        print('기존 구독의 게시판 정보 로드 완료: $subscribedBoards');
-        loading = false;
+        tempSubscribedBoards.value = List<String>.from(subscribedBoards);
+        print('기존 구독의 게시판 정보 로드 완료: ${subscribedBoards.value}');
+        loading.value = false;
         return;
       }
 
@@ -169,24 +171,27 @@ class BoardSelectionController {
 
       final data = {
         'boards': <String>[],
-        'user_id': userId,
+        'user_id': userId.value,
         'created_at': now,
         'updated_at': now
       };
 
       print('새 구독 생성 시도: $data');
 
-      final response =
-          await client.from('subscriptions').insert(data).select('id').single();
+      final response = await _supabaseProvider.client
+          .from('subscriptions')
+          .insert(data)
+          .select('id')
+          .single();
 
       // id 값이 int인 경우 String으로 변환
-      subscriptionId =
-          response['id'] != null ? response['id'].toString() : null;
-      print('새 구독 생성 성공: ID=$subscriptionId');
+      subscriptionId.value =
+          response['id'] != null ? response['id'].toString() : '';
+      print('새 구독 생성 성공: ID=${subscriptionId.value}');
 
-      subscribedBoards = [];
-      tempSubscribedBoards = [];
-      loading = false;
+      subscribedBoards.clear();
+      tempSubscribedBoards.clear();
+      loading.value = false;
     } catch (err) {
       print('구독 생성/검색 실패: $err');
       // 중복 키 오류인 경우 다시 로드 시도
@@ -194,32 +199,27 @@ class BoardSelectionController {
           err.toString().contains('unique constraint')) {
         try {
           print('중복 키 오류 발생, 기존 구독 재시도');
-          final existingResponse = await client
+          final existingResponse = await _supabaseProvider.client
               .from('subscriptions')
               .select('id, boards')
-              .eq('user_id', userId!)
+              .eq('user_id', userId.value)
               .single();
 
           // id 값이 int인 경우 String으로 변환
-          subscriptionId = existingResponse['id'] != null
+          subscriptionId.value = existingResponse['id'] != null
               ? existingResponse['id'].toString()
-              : null;
+              : '';
           final boardsField = existingResponse['boards'];
-          subscribedBoards =
+          subscribedBoards.value =
               boardsField != null ? List<String>.from(boardsField) : [];
-          tempSubscribedBoards = List<String>.from(subscribedBoards);
-          print('중복 키 복구 성공: ID=$subscriptionId, boards=$subscribedBoards');
+          tempSubscribedBoards.value = List<String>.from(subscribedBoards);
+          print(
+              '중복 키 복구 성공: ID=${subscriptionId.value}, boards=${subscribedBoards.value}');
         } catch (retryError) {
           print('중복 키 복구 실패: $retryError');
-          if (onError != null) {
-            onError(retryError);
-          }
         }
       } else {
-        loading = false;
-        if (onError != null) {
-          onError(err);
-        }
+        loading.value = false;
       }
     }
   }
@@ -236,55 +236,42 @@ class BoardSelectionController {
       newList.add(boardId);
     }
 
-    tempSubscribedBoards = newList;
+    tempSubscribedBoards.value = newList;
   }
 
-  Future<bool> saveAllSubscriptions({
-    Function? onUpdate,
-    Function? onError,
-  }) async {
-    if (userId == null) return false;
-    if (!hasChanges) return true;
+  Future<bool> saveAllSubscriptions() async {
+    if (userId.isEmpty) return false;
+    if (!hasChanges.value) return true;
 
     try {
-      if (subscriptionId == null) {
-        await createEmptySubscription(onError: onError);
-        if (subscriptionId == null) return false;
+      if (subscriptionId.isEmpty) {
+        await createEmptySubscription();
+        if (subscriptionId.isEmpty) return false;
       }
 
       final now = DateTime.now().toIso8601String();
-      print('구독 업데이트 시도: ID=$subscriptionId, boards=$tempSubscribedBoards');
+      print(
+          '구독 업데이트 시도: ID=${subscriptionId.value}, boards=${tempSubscribedBoards.value}');
 
-      final response = await client
+      final response = await _supabaseProvider.client
           .from('subscriptions')
-          .update({'boards': tempSubscribedBoards, 'updated_at': now})
-          .eq('id', subscriptionId!)
+          .update({'boards': tempSubscribedBoards.toList(), 'updated_at': now})
+          .eq('id', subscriptionId.value)
           .select();
 
-      print('구독 업데이트 성공: 응답 데이터=${response.toString()}');
-      subscribedBoards = List<String>.from(tempSubscribedBoards);
-      print('구독된 게시판 목록 업데이트 완료: $subscribedBoards');
-
-      if (onUpdate != null) {
-        onUpdate(subscribedBoards);
-      }
+      print('구독 업데이트 성공: 응답 데이터=$response');
+      subscribedBoards.value = List<String>.from(tempSubscribedBoards);
+      print('구독된 게시판 목록 업데이트 완료: ${subscribedBoards.value}');
 
       return true;
     } catch (err) {
       print('구독 업데이트 실패: $err');
-      if (onError != null) {
-        onError(err);
-      }
       return false;
     }
   }
 
-  Future<void> toggleBoard(
-    String boardId, {
-    Function? onUpdate,
-    Function? onError,
-  }) async {
-    if (userId == null) return;
+  Future<void> toggleBoard(String boardId) async {
+    if (userId.isEmpty) return;
 
     final newList = List<String>.from(subscribedBoards);
     if (newList.contains(boardId)) {
@@ -293,41 +280,34 @@ class BoardSelectionController {
       newList.add(boardId);
     }
 
-    if (onUpdate != null) {
-      onUpdate(newList);
-    }
-
     try {
-      if (subscriptionId == null) {
-        await createEmptySubscription(onError: onError);
-        await toggleBoard(boardId, onUpdate: onUpdate, onError: onError);
+      if (subscriptionId.isEmpty) {
+        await createEmptySubscription();
+        await toggleBoard(boardId);
         return;
       }
 
       final now = DateTime.now().toIso8601String();
       print(
-          '개별 게시판 토글 시도: ID=$subscriptionId, boardId=$boardId, 새 목록=$newList');
+          '개별 게시판 토글 시도: ID=${subscriptionId.value}, boardId=$boardId, 새 목록=$newList');
 
-      final response = await client
+      final response = await _supabaseProvider.client
           .from('subscriptions')
           .update({'boards': newList, 'updated_at': now})
-          .eq('id', subscriptionId!)
+          .eq('id', subscriptionId.value)
           .select();
 
-      print('게시판 토글 성공: 응답 데이터=${response.toString()}');
-      subscribedBoards = newList;
-      tempSubscribedBoards = List<String>.from(newList);
-      print('구독된 게시판 목록 업데이트 완료: $subscribedBoards');
+      print('게시판 토글 성공: 응답 데이터=$response');
+      subscribedBoards.value = newList;
+      tempSubscribedBoards.value = List<String>.from(newList);
+      print('구독된 게시판 목록 업데이트 완료: ${subscribedBoards.value}');
     } catch (err) {
       print('게시판 토글 실패: $err');
-      if (onError != null) {
-        onError(err);
-      }
     }
   }
 
   void cancelChanges() {
-    tempSubscribedBoards = List<String>.from(subscribedBoards);
+    tempSubscribedBoards.value = List<String>.from(subscribedBoards);
   }
 
   String getBoardName(String boardId) {
