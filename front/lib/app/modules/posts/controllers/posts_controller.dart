@@ -115,6 +115,12 @@ class PostsController extends GetxController {
           ? 'all_${subscribedBoards.join('_')}_page$_page'
           : '${boardId}_page$_page';
 
+      // 검색어가 있는 경우 캐시를 사용하지 않음
+      if (searchQuery.value.isNotEmpty) {
+        useCache = false;
+        forceRefresh = true;
+      }
+
       // 캐시 사용 가능하고 강제 새로고침이 아닌 경우, 캐시된 데이터 사용
       if (_page == 1 &&
           useCache &&
@@ -135,6 +141,19 @@ class PostsController extends GetxController {
         queryBuilder = queryBuilder.eq('board_id', boardId);
       } else if (subscribedBoards.isNotEmpty) {
         queryBuilder = queryBuilder.inFilter('board_id', subscribedBoards);
+      }
+
+      // 현재 선택된 태그 필터 적용 (selectedTagFilter가 변경되었을 수 있음)
+      if (selectedTagFilter.value != 'all' &&
+          selectedTagFilter.value != boardId) {
+        queryBuilder = queryBuilder.eq('board_id', selectedTagFilter.value);
+      }
+
+      // 검색어가 있는 경우 검색 필터 적용 (현재 게시판/태그 내에서만 검색)
+      if (searchQuery.value.isNotEmpty) {
+        // title과 description 열에 대한 검색을 AND 조건으로 추가
+        queryBuilder = queryBuilder.or(
+            'title.ilike.%${searchQuery.value}%,description.ilike.%${searchQuery.value}%');
       }
 
       // 페이지네이션 적용 - 최신순으로 정렬하고 페이지 크기만큼 가져옴
@@ -163,14 +182,14 @@ class PostsController extends GetxController {
         posts.value = updatedPosts;
       }
 
-      // 캐시 업데이트 (첫 페이지만)
-      if (_page == 1) {
+      // 검색어가 없을 때만 캐시 업데이트 (첫 페이지만)
+      if (_page == 1 && searchQuery.value.isEmpty) {
         _cachedPosts[cacheKey] = List.from(posts);
         _lastFetchTime = DateTime.now();
       }
 
-      // 필터링된 게시물 목록 업데이트
-      _applyFilters();
+      // 검색 결과를 바로 필터링된 게시물에 설정
+      filteredPosts.value = List.from(posts);
 
       // 페이지 증가
       _page++;
@@ -197,10 +216,11 @@ class PostsController extends GetxController {
     await fetchPosts(useCache: false, forceRefresh: true);
   }
 
-  // 검색어로 게시물 필터링
+  // 검색어로 게시물 필터링 (Supabase DB에서 직접 검색)
   void searchByTitle(String query) {
     searchQuery.value = query;
-    _applyFilters();
+    resetPagination(); // 새 검색어로 페이지네이션 리셋
+    fetchPosts(useCache: false, forceRefresh: true); // DB에서 직접 검색 실행
   }
 
   // 태그로 게시물 필터링
@@ -225,13 +245,22 @@ class PostsController extends GetxController {
         // 캐시 키 생성
         final String cacheKey = 'all_${subscribedBoards.join('_')}_page1';
 
-        // 모든 구독 게시판의 게시물 로드
-        final data = await _supabaseProvider.client
+        // 검색어가 있는 경우를 고려한 쿼리 생성
+        var queryBuilder = _supabaseProvider.client
             .from('posts')
             .select()
-            .inFilter('board_id', subscribedBoards)
+            .inFilter('board_id', subscribedBoards);
+
+        // 검색어가 있는 경우 검색 필터 적용
+        if (searchQuery.value.isNotEmpty) {
+          queryBuilder = queryBuilder.or(
+              'title.ilike.%${searchQuery.value}%,description.ilike.%${searchQuery.value}%');
+        }
+
+        // 쿼리 실행
+        final data = await queryBuilder
             .order('pub_date', ascending: false)
-            .limit(_limit); // 페이지당 크기만큼만 가져옴
+            .limit(_limit);
 
         // 결과 처리
         final postsList = (data as List<dynamic>).map((doc) {
@@ -251,20 +280,31 @@ class PostsController extends GetxController {
         // 페이지 증가
         _page = 2;
 
-        // 캐시 업데이트
-        _cachedPosts[cacheKey] = List.from(posts);
-        _lastFetchTime = DateTime.now();
+        // 검색어가 없을 때만 캐시 업데이트
+        if (searchQuery.value.isEmpty) {
+          _cachedPosts[cacheKey] = List.from(posts);
+          _lastFetchTime = DateTime.now();
+        }
 
         // 필터링된 결과와 전체 결과 동일하게 설정
         filteredPosts.value = List.from(posts);
       } else {
-        // 특정 게시판의 게시물만 가져오는 쿼리 직접 실행
-        final data = await _supabaseProvider.client
+        // 특정 게시판의 게시물만 가져오는 쿼리 생성
+        var queryBuilder = _supabaseProvider.client
             .from('posts')
             .select()
-            .eq('board_id', tag) // 선택한 태그로 필터링
+            .eq('board_id', tag); // 선택한 태그로 필터링
+
+        // 검색어가 있는 경우 검색 필터 적용
+        if (searchQuery.value.isNotEmpty) {
+          queryBuilder = queryBuilder.or(
+              'title.ilike.%${searchQuery.value}%,description.ilike.%${searchQuery.value}%');
+        }
+
+        // 쿼리 실행
+        final data = await queryBuilder
             .order('pub_date', ascending: false)
-            .limit(_limit); // 페이지당 크기만큼만 가져옴
+            .limit(_limit);
 
         // 결과 처리
         final postsList = (data as List<dynamic>).map((doc) {
@@ -284,9 +324,11 @@ class PostsController extends GetxController {
         // 페이지 증가
         _page = 2;
 
-        // 캐시 업데이트
-        _cachedPosts[tag + '_page1'] = List.from(posts);
-        _lastFetchTime = DateTime.now();
+        // 검색어가 없을 때만 캐시 업데이트
+        if (searchQuery.value.isEmpty) {
+          _cachedPosts[tag + '_page1'] = List.from(posts);
+          _lastFetchTime = DateTime.now();
+        }
 
         // 필터링된 결과와 전체 결과 동일하게 설정
         filteredPosts.value = List.from(posts);
@@ -297,31 +339,6 @@ class PostsController extends GetxController {
       print('Error fetching posts for tag $tag: $err');
       loading.value = false;
     }
-  }
-
-  // 검색어와 태그 필터 모두 적용
-  void _applyFilters() {
-    // 먼저 태그 필터 적용
-    var tempFiltered = List<Map<String, dynamic>>.from(posts);
-
-    // 'all'이 아닌 경우에만 태그 필터링 적용
-    if (selectedTagFilter.value != 'all') {
-      tempFiltered = tempFiltered.where((post) {
-        return post['board_id'] == selectedTagFilter.value;
-      }).toList();
-    }
-
-    // 검색어가 있는 경우 제목 또는 내용으로 필터링
-    if (searchQuery.value.isNotEmpty) {
-      tempFiltered = tempFiltered.where((post) {
-        final title = post['title']?.toString().toLowerCase() ?? '';
-        final description = post['description']?.toString().toLowerCase() ?? '';
-        final query = searchQuery.value.toLowerCase();
-        return title.contains(query) || description.contains(query);
-      }).toList();
-    }
-
-    filteredPosts.value = tempFiltered;
   }
 
   // 현재 선택 가능한 태그 목록 반환 (구독 중인 태그들)

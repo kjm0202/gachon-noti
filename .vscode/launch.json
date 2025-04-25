@@ -9,21 +9,30 @@
             "name": "front",
             "cwd": "front",
             "request": "launch",
-            "type": "dart"
+            "type": "dart",
+            "toolArgs": [
+                "--web-renderer=html"
+            ]
         },
         {
             "name": "front (profile mode)",
             "cwd": "front",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "profile"
+            "flutterMode": "profile",
+            "toolArgs": [
+                "--web-renderer=html"
+            ]
         },
         {
             "name": "front (release mode)",
             "cwd": "front",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "release"
+            "flutterMode": "release",
+            "toolArgs": [
+                "--web-renderer=html"
+            ]
         }
     ]
 }
