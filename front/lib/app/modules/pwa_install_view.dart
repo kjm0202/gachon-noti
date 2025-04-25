@@ -1,4 +1,4 @@
-import 'package:gachon_noti_front/utils/alternative_text_style.dart';
+import 'package:gachon_noti_front/app/utils/alternative_text_style.dart';
 import 'package:web/web.dart' as web;
 
 import 'package:flutter/cupertino.dart';

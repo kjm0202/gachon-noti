@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../../utils/alternative_text_style.dart';
+import '../../../utils/alternative_text_style.dart';
 import '../controllers/subscription_controller.dart';
 import '../../home/controllers/home_controller.dart';
 

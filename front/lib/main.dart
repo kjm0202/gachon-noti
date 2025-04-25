@@ -6,8 +6,8 @@ import 'package:pwa_install/pwa_install.dart';
 import 'package:get/get.dart';
 
 import 'firebase_options.dart';
-import 'utils/const.dart';
-import 'utils/pwa_utils.dart';
+import 'app/utils/const.dart';
+import 'app/utils/pwa_utils.dart';
 import 'app/routes/app_pages.dart';
 import 'app/routes/app_routes.dart';
 import 'app/bindings/initial_binding.dart';

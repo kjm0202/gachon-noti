@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_auto_size_text/flutter_auto_size_text.dart';
-import '../../../../utils/alternative_text_style.dart';
-import '../../../../utils/korean_wrapper.dart';
+import '../../../utils/alternative_text_style.dart';
+import '../../../utils/korean_wrapper.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import '../controllers/posts_controller.dart';
