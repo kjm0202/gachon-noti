@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/providers/auth_provider.dart';
 import '../../../routes/app_routes.dart';

@@ -1,5 +1,4 @@
 import 'package:get/get.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../data/providers/supabase_provider.dart';
 
 class SubscriptionController extends GetxController {
@@ -90,7 +89,7 @@ class SubscriptionController extends GetxController {
         tempSubscribedBoards.value = List<String>.from(subscribedBoards);
 
         print(
-            '구독 정보 로드 성공: ID=${subscriptionId.value}, boards=${subscribedBoards.value}');
+            '구독 정보 로드 성공: ID=${subscriptionId.value}, boards=${subscribedBoards.toList()}');
       } else {
         print('구독 정보가 없음, 새 구독 생성 시도');
         await createEmptySubscription();
@@ -116,7 +115,7 @@ class SubscriptionController extends GetxController {
               boardsField != null ? List<String>.from(boardsField) : [];
           tempSubscribedBoards.value = List<String>.from(subscribedBoards);
           print(
-              '구독 정보 재시도 성공: ID=${subscriptionId.value}, boards=${subscribedBoards.value}');
+              '구독 정보 재시도 성공: ID=${subscriptionId.value}, boards=${subscribedBoards.toList()}');
         } else {
           // 여전히 없으면 생성 시도
           print('구독 정보가 여전히 없음, 새 구독 생성 시도');
@@ -161,7 +160,7 @@ class SubscriptionController extends GetxController {
         subscribedBoards.value =
             boardsField != null ? List<String>.from(boardsField) : [];
         tempSubscribedBoards.value = List<String>.from(subscribedBoards);
-        print('기존 구독의 게시판 정보 로드 완료: ${subscribedBoards.value}');
+        print('기존 구독의 게시판 정보 로드 완료: ${subscribedBoards.toList()}');
         loading.value = false;
         return;
       }
@@ -214,7 +213,7 @@ class SubscriptionController extends GetxController {
               boardsField != null ? List<String>.from(boardsField) : [];
           tempSubscribedBoards.value = List<String>.from(subscribedBoards);
           print(
-              '중복 키 복구 성공: ID=${subscriptionId.value}, boards=${subscribedBoards.value}');
+              '중복 키 복구 성공: ID=${subscriptionId.value}, boards=${subscribedBoards.toList()}');
         } catch (retryError) {
           print('중복 키 복구 실패: $retryError');
         }
@@ -251,7 +250,7 @@ class SubscriptionController extends GetxController {
 
       final now = DateTime.now().toIso8601String();
       print(
-          '구독 업데이트 시도: ID=${subscriptionId.value}, boards=${tempSubscribedBoards.value}');
+          '구독 업데이트 시도: ID=${subscriptionId.value}, boards=${tempSubscribedBoards.toList()}');
 
       final response = await _supabaseProvider.client
           .from('subscriptions')
@@ -261,7 +260,7 @@ class SubscriptionController extends GetxController {
 
       print('구독 업데이트 성공: 응답 데이터=$response');
       subscribedBoards.value = List<String>.from(tempSubscribedBoards);
-      print('구독된 게시판 목록 업데이트 완료: ${subscribedBoards.value}');
+      print('구독된 게시판 목록 업데이트 완료: ${subscribedBoards.toList()}');
 
       return true;
     } catch (err) {
@@ -300,7 +299,7 @@ class SubscriptionController extends GetxController {
       print('게시판 토글 성공: 응답 데이터=$response');
       subscribedBoards.value = newList;
       tempSubscribedBoards.value = List<String>.from(newList);
-      print('구독된 게시판 목록 업데이트 완료: ${subscribedBoards.value}');
+      print('구독된 게시판 목록 업데이트 완료: ${subscribedBoards.toList()}');
     } catch (err) {
       print('게시판 토글 실패: $err');
     }

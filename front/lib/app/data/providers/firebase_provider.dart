@@ -1,22 +1,17 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:get/get.dart';
 import '../../utils/const.dart';
-import 'package:web/web.dart' as web;
-import 'supabase_provider.dart';
+import './supabase_provider.dart';
 
 // 콜백 핸들러 타입 정의
 typedef NotificationCallback = void Function(RemoteMessage message);
 
-class FirebaseService {
-  static final FirebaseService _instance = FirebaseService._internal();
+class FirebaseProvider {
+  static final FirebaseProvider _instance = FirebaseProvider._internal();
 
-  factory FirebaseService() => _instance;
+  factory FirebaseProvider() => _instance;
 
-  FirebaseService._internal();
-
-  // 콜백 핸들러
-  NotificationCallback? _onMessageClickHandler;
+  FirebaseProvider._internal();
 
   Future<String?> initFCM({
     required String? userId,
@@ -39,8 +34,6 @@ class FirebaseService {
       final token = await FirebaseMessaging.instance.getToken(
         vapidKey: API.vapidKey,
       );
-
-      _onMessageClickHandler = handleNotificationClick;
 
       if (token != null) {
         // 현재 세션이 있다면 토큰 저장
@@ -136,18 +129,12 @@ class FirebaseService {
     }
   }
 
-  void handleNotificationClick(RemoteMessage message) {
-    final data = message.data;
-
-    // 메시지 데이터에 'boardId'와 'link' 필드가 있는지 확인
-    final String? boardId = data['boardId'];
-    final String? link = data['link'];
-
-    if (link != null && link.isNotEmpty) {
-      // 링크가 있으면 외부 브라우저로 열기
-      web.window.open(link, '_blank');
-    } else if (_onMessageClickHandler != null) {
-      _onMessageClickHandler!(message);
+  Future<bool> checkNotificationPermission() async {
+    final permission =
+        await FirebaseMessaging.instance.getNotificationSettings();
+    if (permission.authorizationStatus == AuthorizationStatus.denied) {
+      return false;
     }
+    return true;
   }
 }

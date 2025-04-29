@@ -1,33 +1,38 @@
-import 'dart:js_interop';
-
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:web/web.dart' as web;
+import 'dart:js_interop';
+
 import '../../posts/controllers/posts_controller.dart';
-import '../../subscription/controllers/subscription_controller.dart';
 import '../../../data/providers/auth_provider.dart';
-import '../../../data/providers/supabase_provider.dart';
 import '../../../routes/app_routes.dart';
-import '../../../data/providers/firebase_services.dart';
+import '../../../data/providers/firebase_provider.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 class HomeController extends GetxController {
   final AuthProvider _authProvider = Get.find<AuthProvider>();
-  final SupabaseProvider _supabaseProvider = Get.find<SupabaseProvider>();
   final RxInt currentIndex = 0.obs;
-  final RxBool isNotificationDenied = false.obs;
-  final RxBool isShowingDialog = false.obs;
-  final FirebaseProvider _firebaseService = FirebaseProvider();
+  final FirebaseProvider _firebaseProvider = FirebaseProvider();
+  final Rx<AuthorizationStatus> notificationPermission =
+      AuthorizationStatus.authorized.obs;
+  // 구독 변경 성공 시 이벤트
+  final RxBool subscriptionChanged = false.obs;
 
   @override
   void onInit() {
     super.onInit();
+    _checkNotificationPermission();
     _initializeFirebaseMessaging();
+  }
+
+  Future<void> _checkNotificationPermission() async {
+    final permission =
+        await FirebaseMessaging.instance.getNotificationSettings();
+    notificationPermission.value = permission.authorizationStatus;
   }
 
   Future<void> _initializeFirebaseMessaging() async {
     if (_authProvider.isLoggedIn.value) {
-      await _firebaseService.initFCM(
+      await _firebaseProvider.initFCM(
         userId: _authProvider.userId.value,
         onTokenRefresh: (token) {
           print('FCM 토큰 갱신: $token');
@@ -39,7 +44,7 @@ class HomeController extends GetxController {
       // 로그인 상태가 변경될 때 FCM 초기화 수행
       ever(_authProvider.isLoggedIn, (isLoggedIn) {
         if (isLoggedIn) {
-          _firebaseService.initFCM(
+          _firebaseProvider.initFCM(
             userId: _authProvider.userId.value,
             onTokenRefresh: (token) {
               print('FCM 토큰 갱신: $token');
@@ -53,23 +58,45 @@ class HomeController extends GetxController {
   }
 
   void _showInAppNotification(RemoteMessage message) {
-    final notification = message.notification;
-    if (notification != null) {
-      Get.snackbar(
-        notification.title ?? '알림',
-        notification.body ?? '',
-        duration: const Duration(seconds: 5),
+    final data = message.data;
+    print("_showInAppNotification: $data");
+
+    if (data.isNotEmpty) {
+      final String postLink = data['postLink'];
+      final String title = '[${data['boardName']}] 새 공지';
+      final String body = data['title'];
+
+      print("URL 설정: $postLink");
+
+      web.NotificationOptions options = web.NotificationOptions(
+        body: body,
+        data: postLink.toJS,
       );
+
+      web.Notification.requestPermission().toDart.then((status) {
+        if (status.toDart == 'granted') {
+          web.ServiceWorkerContainer container =
+              web.window.navigator.serviceWorker;
+          container.ready.toDart.then((registration) {
+            registration.showNotification(title, options);
+            print('알림 표시: $title - $body (링크: $postLink)');
+          });
+        }
+      });
     }
   }
 
   void _handleNotificationClick(RemoteMessage message) {
+    print('handleNotificationClick');
     final data = message.data;
-    final String? boardId = data['boardId'];
+    final String? postLink = data['postLink'];
 
-    if (boardId != null) {
-      // 게시물 탭으로 이동
-      currentIndex.value = 1;
+    // 알림을 통해 특정 게시판이나 게시글로 이동
+    currentIndex.value = 1; // 전체 게시물 탭으로 전환
+
+    if (postLink != null) {
+      // web.window.location.href = postLink;
+      web.window.open(postLink, '_blank');
     }
   }
 
@@ -83,38 +110,16 @@ class HomeController extends GetxController {
     await postsController.forceRefresh();
 
     // 게시물 탭으로 변경
-    currentIndex.value = 1;
+    // currentIndex.value = 1;
 
-    // 성공 메시지 표시
-    Get.snackbar(
-      '성공',
-      '구독 설정이 저장되었습니다. 게시물이 업데이트되었습니다.',
-      duration: const Duration(seconds: 2),
-    );
+    // 구독 변경 이벤트 발생
+    subscriptionChanged.value = true;
   }
 
-  Future<void> logout() async {
-    final confirmed = await Get.dialog<bool>(
-      AlertDialog(
-        title: const Text('로그아웃'),
-        content: const Text('로그아웃 하시겠습니까?'),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(result: false),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Get.back(result: true),
-            child: const Text('확인'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await _authProvider.logout();
-      // 앱 재시작 또는 로그인 화면으로 이동
-      Get.offAllNamed(Routes.LOGIN);
-    }
+  Future<bool> logout() async {
+    // 로그아웃 로직만 처리하고 결과 반환
+    await _authProvider.logout();
+    Get.offAllNamed(Routes.LOGIN);
+    return true;
   }
 }

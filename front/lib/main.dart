@@ -9,7 +9,6 @@ import 'firebase_options.dart';
 import 'app/utils/const.dart';
 import 'app/utils/pwa_utils.dart';
 import 'app/routes/app_pages.dart';
-import 'app/routes/app_routes.dart';
 import 'app/bindings/initial_binding.dart';
 import 'app/data/providers/auth_provider.dart';
 import 'app/data/providers/supabase_provider.dart';

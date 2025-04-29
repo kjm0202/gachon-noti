@@ -1,6 +1,4 @@
 import 'package:get/get.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../data/models/post_model.dart';
 import '../../../data/providers/supabase_provider.dart';
 
 class PostsController extends GetxController {
@@ -23,8 +21,8 @@ class PostsController extends GetxController {
   int _limit = 20; // a
 
   // 캐싱 관련 변수
-  static Map<String, List<Map<String, dynamic>>> _cachedPosts = {};
-  static RxList<String> _cachedSubscribedBoards = <String>[].obs;
+  static final Map<String, List<Map<String, dynamic>>> _cachedPosts = {};
+  static final RxList<String> _cachedSubscribedBoards = <String>[].obs;
   static DateTime _lastFetchTime = DateTime(1970);
   static const Duration _cacheDuration = Duration(minutes: 5);
 
@@ -54,7 +52,7 @@ class PostsController extends GetxController {
 
       // 구독한 게시판 정보 로드
       if (_cachedSubscribedBoards.isEmpty || !isCacheValid) {
-        final user = await _supabaseProvider.client.auth.currentUser;
+        final user = _supabaseProvider.client.auth.currentUser;
 
         if (user != null) {
           // userId로 구독 문서 찾기

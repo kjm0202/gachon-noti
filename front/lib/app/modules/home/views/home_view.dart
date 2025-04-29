@@ -9,6 +9,15 @@ class HomeView extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
+    // 구독 변경 알림을 위한 리스너 설정
+    ever(controller.subscriptionChanged, (changed) {
+      if (changed) {
+        _showSubscriptionChangedSnackBar();
+        // 상태 초기화
+        controller.subscriptionChanged.value = false;
+      }
+    });
+
     return Scaffold(
       appBar: AppBar(
         title: Obx(() => Text(
@@ -18,7 +27,7 @@ class HomeView extends GetView<HomeController> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: controller.logout,
+            onPressed: _showLogoutDialog,
             tooltip: '로그아웃',
           ),
           IconButton(
@@ -48,6 +57,36 @@ class HomeView extends GetView<HomeController> {
               NavigationDestination(icon: Icon(Icons.article), label: '전체 게시물'),
             ],
           )),
+    );
+  }
+
+  void _showSubscriptionChangedSnackBar() {
+    Get.snackbar(
+      '성공',
+      '구독 설정이 저장되었습니다. 게시물이 업데이트되었습니다.',
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  void _showLogoutDialog() {
+    Get.dialog(
+      AlertDialog(
+        title: const Text('로그아웃'),
+        content: const Text('로그아웃 하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Get.back();
+              await controller.logout();
+            },
+            child: const Text('확인'),
+          ),
+        ],
+      ),
     );
   }
 

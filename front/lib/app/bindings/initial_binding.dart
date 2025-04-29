@@ -1,8 +1,6 @@
 import 'package:get/get.dart';
 import '../modules/posts/controllers/posts_controller.dart';
 import '../modules/subscription/controllers/subscription_controller.dart';
-import '../data/providers/auth_provider.dart';
-import '../data/providers/supabase_provider.dart';
 import '../modules/home/controllers/home_controller.dart';
 import '../modules/login/controllers/login_controller.dart';
 
