@@ -129,6 +129,35 @@ class FirebaseProvider {
     }
   }
 
+  // 로그아웃 시 FCM 토큰 삭제 메서드
+  Future<void> removeFcmToken(String userId) async {
+    try {
+      print('Removing FCM tokens for userId "$userId"...');
+
+      // 현재 FCM 토큰 가져오기
+      final token = await FirebaseMessaging.instance.getToken();
+
+      if (token != null) {
+        final supabase = Get.find<SupabaseProvider>().client;
+
+        // 현재 디바이스의 토큰만 삭제
+        await supabase
+            .from('user_devices')
+            .delete()
+            .eq('user_id', userId)
+            .eq('fcm_token', token);
+
+        print('FCM token removed from user_devices.');
+
+        // 토큰 삭제
+        await FirebaseMessaging.instance.deleteToken();
+        print('FCM token deleted from device.');
+      }
+    } catch (e) {
+      print('Error removing FCM token: $e');
+    }
+  }
+
   Future<bool> checkNotificationPermission() async {
     final permission =
         await FirebaseMessaging.instance.getNotificationSettings();

@@ -117,9 +117,16 @@ class HomeController extends GetxController {
   }
 
   Future<bool> logout() async {
-    // 로그아웃 로직만 처리하고 결과 반환
-    await _authProvider.logout();
-    Get.offAllNamed(Routes.LOGIN);
-    return true;
+    try {
+      // AuthProvider에 통합된 로그아웃 로직 호출
+      final result = await _authProvider.logout();
+      if (result) {
+        Get.offAllNamed(Routes.LOGIN);
+      }
+      return result;
+    } catch (e) {
+      print('로그아웃 처리 오류: $e');
+      return false;
+    }
   }
 }

@@ -6,9 +6,11 @@ import 'package:web/web.dart' as web;
 import 'dart:async';
 
 import 'supabase_provider.dart';
+import 'firebase_provider.dart';
 
 class AuthProvider extends GetxService {
   final SupabaseProvider _supabaseProvider = Get.find<SupabaseProvider>();
+  late final FirebaseProvider _firebaseProvider;
 
   final RxString userId = RxString('');
   final RxString userEmail = RxString('');
@@ -18,6 +20,8 @@ class AuthProvider extends GetxService {
   Function? _pendingLoginSuccess;
 
   Future<AuthProvider> init() async {
+    _firebaseProvider = FirebaseProvider();
+
     // 인증 상태 변화 구독
     _authSubscription =
         _supabaseProvider.client.auth.onAuthStateChange.listen((data) {
@@ -122,12 +126,25 @@ class AuthProvider extends GetxService {
     }
   }
 
+  // 사용자 로그아웃 처리
   Future<bool> logout() async {
     try {
+      // 현재 유저 ID 저장 (로그아웃 후에는 사라지므로)
+      final currentUserId = userId.value;
+
+      // Supabase 로그아웃 처리
       await _supabaseProvider.client.auth.signOut();
+
+      // FCM 토큰 삭제 처리
+      if (currentUserId.isNotEmpty) {
+        await _firebaseProvider.removeFcmToken(currentUserId);
+      }
+
+      // 상태 초기화
       userEmail.value = '';
       userId.value = '';
       isLoggedIn.value = false;
+
       return true;
     } catch (e) {
       print('Logout error: $e');

@@ -18,7 +18,7 @@ class PostsController extends GetxController {
 
   // 페이지네이션 관련 변수
   int _page = 1;
-  int _limit = 20; // a
+  static const int _limit = 20; // a
 
   // 캐싱 관련 변수
   static final Map<String, List<Map<String, dynamic>>> _cachedPosts = {};
