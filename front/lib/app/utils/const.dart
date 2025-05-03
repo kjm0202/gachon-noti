@@ -7,8 +7,4 @@ class API {
   // Firebase 설정 (FCM용)
   static const String vapidKey =
       'BDqgF19sodFma3fvtewXSNrhyr2a8G1n8E5rh8bHSvuaCq_etquIzfoKYQyauH6OjyLeYteU-BoXJz_io72BTgo';
-
-  // 구글 OAuth 설정
-  static const String googleClientId =
-      '1006219923383-jmos7nbuisvh963o7uful7rsentp9i3e.apps.googleusercontent.com';
 }
