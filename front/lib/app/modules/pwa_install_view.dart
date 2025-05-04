@@ -83,25 +83,25 @@ class _PwaInstallScreenContent extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              AutoSizeText(
+              Text(
                 '이 앱은 기기의 홈 화면에 설치 후 사용 가능합니다.\n',
                 style: AltTextStyle.bodyLarge,
                 textAlign: TextAlign.center,
                 maxLines: 1,
               ),
-              AutoSizeText(
+              Text(
                 '${defaultTargetPlatform == TargetPlatform.iOS ? 'Safari' : 'Chrome'} 브라우저를 권장합니다.',
                 style: AltTextStyle.bodyLarge,
                 textAlign: TextAlign.center,
               ),
               if (defaultTargetPlatform == TargetPlatform.android)
-                AutoSizeText(
-                  '(삼성 인터넷 앱은 버그가 있어 추천하지 않습니다.)\n',
+                Text(
+                  '(삼성 인터넷 앱은 버그가 있어 추천 X)\n',
                   style: AltTextStyle.bodyLarge,
                   textAlign: TextAlign.center,
                   maxLines: 1,
                 ),
-              AutoSizeText(
+              Text(
                 '아래 설치 버튼을 눌러주세요.',
                 style: AltTextStyle.bodyLarge,
                 textAlign: TextAlign.center,
