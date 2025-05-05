@@ -63,8 +63,8 @@ class _PwaInstallScreenContent extends StatelessWidget {
                         children: [
                           Image.asset(
                             'assets/icons/samsung_internet.webp',
-                            width: 70,
-                            height: 70,
+                            width: 80,
+                            height: 80,
                           ),
                           Icon(
                             Icons.block,
@@ -107,7 +107,9 @@ class _PwaInstallScreenContent extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              ElevatedButton(
+              ElevatedButton.icon(
+                icon: const Icon(Icons.download),
+                label: const Text('설치'),
                 onPressed: () {
                   if (defaultTargetPlatform == TargetPlatform.iOS) {
                     showModalBottomSheet(
@@ -197,7 +199,6 @@ class _PwaInstallScreenContent extends StatelessWidget {
                     }
                   }
                 },
-                child: const Text('설치'),
               ),
             ],
           ),
