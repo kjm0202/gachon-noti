@@ -5,7 +5,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_auto_size_text/flutter_auto_size_text.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pwa_install/pwa_install.dart';
 import 'package:get/get.dart';
 import '../../theme.dart';
@@ -42,8 +41,8 @@ class _PwaInstallScreenContent extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (defaultTargetPlatform == TargetPlatform.iOS)
-                SvgPicture.asset(
-                  'assets/icons/safari.svg',
+                Image.asset(
+                  'assets/icons/safari.webp',
                   width: 80,
                   height: 80,
                 )
@@ -51,8 +50,8 @@ class _PwaInstallScreenContent extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SvgPicture.asset(
-                      'assets/icons/chrome.svg',
+                    Image.asset(
+                      'assets/icons/chrome.webp',
                       width: 80,
                       height: 80,
                     ),

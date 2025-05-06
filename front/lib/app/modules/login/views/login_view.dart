@@ -15,7 +15,7 @@ class LoginView extends GetView<LoginController> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Image.asset(
-                'assets/icons/app_icon_transparent.png',
+                'assets/icons/app_icon_transparent.webp',
                 width: 120,
                 height: 120,
               ),
@@ -29,26 +29,9 @@ class LoginView extends GetView<LoginController> {
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               const SizedBox(height: 48),
-              Obx(() => ElevatedButton.icon(
-                    icon: const Icon(Icons.login, color: Colors.white),
-                    label: controller.isLoading.value
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text(
-                            '구글 계정으로 로그인',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.white,
-                            ),
-                          ),
+              Obx(() => ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                      // backgroundColor: Color(0xffb8d6f4),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 24,
                         vertical: 16,
@@ -58,6 +41,33 @@ class LoginView extends GetView<LoginController> {
                     onPressed: controller.isLoading.value
                         ? null
                         : () => controller.loginWithGoogle(),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Image.asset(
+                          'assets/icons/google.webp',
+                          width: 24,
+                          height: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        controller.isLoading.value
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                '구글 계정으로 로그인',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  // color: Colors.white,
+                                ),
+                              ),
+                      ],
+                    ),
                   )),
             ],
           ),

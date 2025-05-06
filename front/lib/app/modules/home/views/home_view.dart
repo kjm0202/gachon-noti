@@ -98,7 +98,7 @@ class HomeView extends GetView<HomeController> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Image.asset(
-              'assets/icons/app_icon_transparent.png',
+              'assets/icons/app_icon_transparent.webp',
               width: 48,
               height: 48,
             ),
