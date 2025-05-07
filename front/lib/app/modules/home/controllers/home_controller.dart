@@ -1,12 +1,13 @@
 import 'package:get/get.dart';
 import 'package:web/web.dart' as web;
 import 'dart:js_interop';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 import '../../posts/controllers/posts_controller.dart';
 import '../../../data/providers/auth_provider.dart';
 import '../../../routes/app_routes.dart';
 import '../../../data/providers/firebase_provider.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+import '../../../utils/version_checker.dart';
 
 class HomeController extends GetxController {
   final AuthProvider _authProvider = Get.find<AuthProvider>();
@@ -16,12 +17,30 @@ class HomeController extends GetxController {
       AuthorizationStatus.authorized.obs;
   // 구독 변경 성공 시 이벤트
   final RxBool subscriptionChanged = false.obs;
+  // 업데이트 확인 관련 변수
+  final RxBool updateAvailable = false.obs;
 
   @override
   void onInit() {
     super.onInit();
     _checkNotificationPermission();
     _initializeFirebaseMessaging();
+  }
+
+  @override
+  void onReady() {
+    super.onReady();
+    _checkForUpdates();
+  }
+
+  // 업데이트 확인 메서드
+  Future<void> _checkForUpdates() async {
+    try {
+      final needsUpdate = await VersionChecker.needsUpdate();
+      updateAvailable.value = needsUpdate;
+    } catch (e) {
+      print('업데이트 확인 중 오류 발생: $e');
+    }
   }
 
   Future<void> _checkNotificationPermission() async {

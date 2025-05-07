@@ -19,6 +19,13 @@ class HomeView extends GetView<HomeController> {
       }
     });
 
+    // 업데이트 확인 리스너 설정
+    ever(controller.updateAvailable, (available) {
+      if (available) {
+        _showUpdateDialog(context);
+      }
+    });
+
     return Scaffold(
       appBar: AppBar(
         title: Obx(() => Text(
@@ -121,6 +128,22 @@ class HomeView extends GetView<HomeController> {
             child: const Text('확인'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showUpdateDialog(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('새로운 버전이 출시되었습니다. 업데이트하시겠습니까?'),
+        action: SnackBarAction(
+          label: '업데이트',
+          onPressed: () {
+            web.window.location.reload();
+          },
+        ),
+        duration: const Duration(days: 365),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
