@@ -105,99 +105,113 @@ class _PwaInstallScreenContent extends StatelessWidget {
                 style: AltTextStyle.bodyMedium,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.download),
-                label: const Text('설치'),
-                onPressed: () {
-                  if (defaultTargetPlatform == TargetPlatform.iOS) {
-                    showModalBottomSheet(
-                      context: context,
-                      builder: (context) => Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Text(
-                              'iOS 설치 방법 (Safari 권장)',
-                              style: AltTextStyle.titleLarge,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0,
-                              vertical: 8.0,
-                            ),
-                            child: Row(
-                              children: [
-                                AutoSizeText(
-                                  '1. 메뉴 바의 공유(',
-                                  style: AltTextStyle.bodyLarge,
-                                ),
-                                const Icon(
-                                  CupertinoIcons.share,
-                                  size: 16,
-                                  color: Color(0xFF007AFF),
-                                ),
-                                AutoSizeText(
-                                  ') 버튼 클릭',
-                                  style: AltTextStyle.bodyLarge,
-                                ),
-                              ],
-                            ),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 16.0,
-                              vertical: 8.0,
-                            ),
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: AutoSizeText(
-                                '2. 공유 메뉴에서 "홈 화면에 추가" 선택',
-                                style: AltTextStyle.bodyLarge,
+              const SizedBox(height: 16),
+              SizedBox(
+                width: 150,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.download),
+                  label: const Text('설치'),
+                  onPressed: () {
+                    if (defaultTargetPlatform == TargetPlatform.iOS) {
+                      showModalBottomSheet(
+                        context: context,
+                        builder: (context) => Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Text(
+                                'iOS 설치 방법 (Safari 권장)',
+                                style: AltTextStyle.titleLarge,
                               ),
                             ),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 16.0,
-                              vertical: 8.0,
-                            ),
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: AutoSizeText(
-                                '3. 홈 화면에 앱이 설치되면 눌러서 실행',
-                                style: AltTextStyle.bodyLarge,
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16.0,
+                                vertical: 8.0,
+                              ),
+                              child: Row(
+                                children: [
+                                  AutoSizeText(
+                                    '1. 메뉴 바의 공유(',
+                                    style: AltTextStyle.bodyLarge,
+                                  ),
+                                  const Icon(
+                                    CupertinoIcons.share,
+                                    size: 16,
+                                    color: Color(0xFF007AFF),
+                                  ),
+                                  AutoSizeText(
+                                    ') 버튼 클릭',
+                                    style: AltTextStyle.bodyLarge,
+                                  ),
+                                ],
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                      ),
-                    );
-                  } else {
-                    PWAInstall().promptInstall_();
-                    if (defaultTargetPlatform == TargetPlatform.windows ||
-                        defaultTargetPlatform == TargetPlatform.macOS ||
-                        defaultTargetPlatform == TargetPlatform.linux) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: AutoSizeText(
-                            'PC에서는 설치 후 새 창이 뜨면 새로고침 해주세요.',
-                          ),
-                          action: SnackBarAction(
-                            label: '새로고침',
-                            onPressed: () {
-                              web.window.location.reload();
-                            },
-                          ),
-                          duration: Duration(days: 365),
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 16.0,
+                                vertical: 8.0,
+                              ),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: AutoSizeText(
+                                  '2. 공유 메뉴에서 "홈 화면에 추가" 선택',
+                                  style: AltTextStyle.bodyLarge,
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 16.0,
+                                vertical: 8.0,
+                              ),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: AutoSizeText(
+                                  '3. 홈 화면에 앱이 설치되면 눌러서 실행',
+                                  style: AltTextStyle.bodyLarge,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
                         ),
                       );
+                    } else {
+                      PWAInstall().promptInstall_();
+                      if (defaultTargetPlatform == TargetPlatform.windows ||
+                          defaultTargetPlatform == TargetPlatform.macOS ||
+                          defaultTargetPlatform == TargetPlatform.linux) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: AutoSizeText(
+                              'PC에서는 설치 후 새 창이 뜨면 새로고침 해주세요.',
+                            ),
+                            action: SnackBarAction(
+                              label: '새로고침',
+                              onPressed: () {
+                                web.window.location.reload();
+                              },
+                            ),
+                            duration: Duration(days: 365),
+                          ),
+                        );
+                      }
                     }
-                  }
-                },
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: 150,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.home),
+                  label: const Text('홈페이지'),
+                  onPressed: () {
+                    web.window.open('https://gachon-noti.notion.site/');
+                  },
+                ),
               ),
             ],
           ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:web/web.dart' as web;
 import '../../posts/views/posts_view.dart';
 import '../../subscription/views/subscription_view.dart';
 import '../controllers/home_controller.dart';
@@ -93,21 +94,28 @@ class HomeView extends GetView<HomeController> {
   void _showAboutDialog() {
     Get.dialog(
       AlertDialog(
-        title: const Text('가천 알림이'),
+        title: const Text('정보'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset(
+            /* Image.asset(
               'assets/icons/app_icon_transparent.webp',
               width: 48,
               height: 48,
-            ),
+            ), */
             const SizedBox(height: 16),
             const Text('Made by 무적소웨 졸업생'),
             const Text('이 앱은 가천대학교 공식 앱이 아닙니다.'),
           ],
         ),
         actions: [
+          TextButton(
+            onPressed: () {
+              Get.back();
+              web.window.open('https://gachon-noti.notion.site/');
+            },
+            child: const Text('홈페이지'),
+          ),
           TextButton(
             onPressed: () => Get.back(),
             child: const Text('확인'),
