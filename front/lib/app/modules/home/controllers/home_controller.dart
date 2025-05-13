@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:web/web.dart' as web;
 import 'dart:js_interop';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
 
 import '../../posts/controllers/posts_controller.dart';
 import '../../../data/providers/auth_provider.dart';
@@ -21,10 +22,25 @@ class HomeController extends GetxController {
   final RxBool updateAvailable = false.obs;
 
   @override
-  void onInit() {
+  Future<void> onInit() async {
     super.onInit();
-    _checkNotificationPermission();
-    _initializeFirebaseMessaging();
+    await _checkNotificationPermission();
+
+    // 알림 권한이 아직 결정되지 않은 경우 권한 요청 다이얼로그 표시
+    if (notificationPermission.value == AuthorizationStatus.notDetermined) {
+      _showNotificationPermissionDialog();
+    }
+
+    if (_authProvider.isLoggedIn.value) {
+      await _initFCM();
+    } else {
+      // 로그인 상태가 변경될 때 FCM 초기화 수행
+      ever(_authProvider.isLoggedIn, (isLoggedIn) {
+        if (isLoggedIn) {
+          _initFCM();
+        }
+      });
+    }
   }
 
   @override
@@ -49,31 +65,50 @@ class HomeController extends GetxController {
     notificationPermission.value = permission.authorizationStatus;
   }
 
-  Future<void> _initializeFirebaseMessaging() async {
-    if (_authProvider.isLoggedIn.value) {
-      await _firebaseProvider.initFCM(
-        userId: _authProvider.userId.value,
-        onTokenRefresh: (token) {
-          print('FCM 토큰 갱신: $token');
-        },
-        showInAppNotification: _showInAppNotification,
-        handleNotificationClick: _handleNotificationClick,
-      );
-    } else {
-      // 로그인 상태가 변경될 때 FCM 초기화 수행
-      ever(_authProvider.isLoggedIn, (isLoggedIn) {
-        if (isLoggedIn) {
-          _firebaseProvider.initFCM(
-            userId: _authProvider.userId.value,
-            onTokenRefresh: (token) {
-              print('FCM 토큰 갱신: $token');
+  void _showNotificationPermissionDialog() {
+    Get.dialog(
+      AlertDialog(
+        title: const Text('알림 권한 요청'),
+        content: const Text('\'확인\' 버튼을 누른 뒤 나오는 팝업에서 알림 권한을 허용해주세요.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Get.back();
+              _requestNotificationPermission();
             },
-            showInAppNotification: _showInAppNotification,
-            handleNotificationClick: _handleNotificationClick,
-          );
-        }
-      });
+            child: const Text('확인'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _requestNotificationPermission() async {
+    // 웹 알림 권한 요청
+    final status = await web.Notification.requestPermission().toDart;
+
+    // 권한 상태 업데이트
+    if (status.toDart == 'granted') {
+      notificationPermission.value = AuthorizationStatus.authorized;
+    } else if (status.toDart == 'denied') {
+      notificationPermission.value = AuthorizationStatus.denied;
     }
+
+    // 권한을 얻었다면 FCM 초기화
+    if (notificationPermission.value == AuthorizationStatus.authorized) {
+      await _initFCM();
+    }
+  }
+
+  Future<void> _initFCM() async {
+    await _firebaseProvider.initFCM(
+      userId: _authProvider.userId.value,
+      onTokenRefresh: (token) {
+        print('FCM 토큰 갱신: $token');
+      },
+      showInAppNotification: _showInAppNotification,
+      handleNotificationClick: _handleNotificationClick,
+    );
   }
 
   void _showInAppNotification(RemoteMessage message) {
