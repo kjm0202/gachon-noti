@@ -20,6 +20,8 @@ class HomeController extends GetxController {
   final RxBool subscriptionChanged = false.obs;
   // 업데이트 확인 관련 변수
   final RxBool updateAvailable = false.obs;
+  // 로그아웃 진행 중 상태
+  final RxBool isLoggingOut = false.obs;
 
   @override
   Future<void> onInit() async {
@@ -172,15 +174,22 @@ class HomeController extends GetxController {
 
   Future<bool> logout() async {
     try {
+      // 로그아웃 시작
+      isLoggingOut.value = true;
+
       // AuthProvider에 통합된 로그아웃 로직 호출
       final result = await _authProvider.logout();
       if (result) {
         Get.offAllNamed(Routes.LOGIN);
       }
+
       return result;
     } catch (e) {
       print('로그아웃 처리 오류: $e');
       return false;
+    } finally {
+      // 로그아웃 완료 (성공 또는 실패)
+      isLoggingOut.value = false;
     }
   }
 }
