@@ -2,7 +2,7 @@ name: gachon_noti_front
 description: "Gachon University Notice Service"
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.5.4
@@ -20,12 +20,13 @@ dependencies:
       url: https://github.com/jtmuller5/pwa_install.git
       ref: 82320a2
   url_launcher: ^6.3.1
-  flutter_svg: ^2.0.17
+  # flutter_svg: ^2.0.17
   flutter_auto_size_text: ^4.1.0
   package_info_plus: ^8.3.0
   intl: ^0.20.2
   http: ^1.3.0
-  supabase_flutter: ^2.8.4
+  supabase_flutter: ^2.9.0
+  get: ^4.7.2
 
 dependency_overrides:
 

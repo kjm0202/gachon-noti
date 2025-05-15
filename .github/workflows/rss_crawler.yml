@@ -2,7 +2,7 @@ name: RSS Crawler
 
 on:
   schedule:
-    - cron: "*/15 * * * *"  # 15분 간격
+    - cron: "*/5 * * * *"  # 5분 간격
   workflow_dispatch:        # 수동 실행도 허용
 
 jobs:
