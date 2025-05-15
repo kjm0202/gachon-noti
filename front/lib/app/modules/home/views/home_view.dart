@@ -78,23 +78,42 @@ class HomeView extends GetView<HomeController> {
 
   void _showLogoutDialog() {
     Get.dialog(
-      AlertDialog(
-        title: const Text('로그아웃'),
-        content: const Text('로그아웃 하시겠습니까?'),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Get.back();
-              await controller.logout();
-            },
-            child: const Text('확인'),
-          ),
-        ],
+      PopScope(
+        canPop: !controller.isLoggingOut.value,
+        child: Obx(() => AlertDialog(
+              title: const Text('로그아웃'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (controller.isLoggingOut.value)
+                    Column(
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 16),
+                        const Text('로그아웃 중...'),
+                      ],
+                    )
+                  else
+                    const Text('로그아웃 하시겠습니까?'),
+                ],
+              ),
+              actions: [
+                if (!controller.isLoggingOut.value) ...[
+                  TextButton(
+                    onPressed: () => Get.back(),
+                    child: const Text('취소'),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      await controller.logout();
+                    },
+                    child: const Text('확인'),
+                  ),
+                ],
+              ],
+            )),
       ),
+      barrierDismissible: false,
     );
   }
 
@@ -135,7 +154,7 @@ class HomeView extends GetView<HomeController> {
   void _showUpdateDialog(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('새로운 버전이 출시되었습니다. 업데이트하시겠습니까?'),
+        content: const Text('새로운 버전이 출시되었습니다.'),
         action: SnackBarAction(
           label: '업데이트',
           onPressed: () {
