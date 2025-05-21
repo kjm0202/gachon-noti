@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:web/web.dart' as web;
 import '../controllers/login_controller.dart';
 
 class LoginView extends GetView<LoginController> {
@@ -69,6 +70,18 @@ class LoginView extends GetView<LoginController> {
                       ],
                     ),
                   )),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () =>
+                    web.window.open('https://gachon-noti-privacy.ven0m.kr/'),
+                child: const Text(
+                  '개인정보 처리방침',
+                  style: TextStyle(
+                    fontSize: 12,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
             ],
           ),
         ),

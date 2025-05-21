@@ -22,7 +22,7 @@ class HomeView extends GetView<HomeController> {
     // 업데이트 확인 리스너 설정
     ever(controller.updateAvailable, (available) {
       if (available) {
-        _showUpdateDialog(context);
+        _showUpdateSnackbar(context);
       }
     });
 
@@ -138,9 +138,9 @@ class HomeView extends GetView<HomeController> {
           TextButton(
             onPressed: () {
               Get.back();
-              web.window.open('https://gachon-noti.notion.site/');
+              web.window.open('https://gachon-noti-privacy.ven0m.kr/');
             },
-            child: const Text('홈페이지'),
+            child: const Text('개인정보처리방침침'),
           ),
           TextButton(
             onPressed: () => Get.back(),
@@ -151,7 +151,7 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
-  void _showUpdateDialog(BuildContext context) {
+  void _showUpdateSnackbar(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('새로운 버전이 출시되었습니다.'),
