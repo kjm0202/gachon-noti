@@ -140,7 +140,7 @@ class HomeView extends GetView<HomeController> {
               Get.back();
               web.window.open('https://gachon-noti-privacy.ven0m.kr/');
             },
-            child: const Text('개인정보처리방침침'),
+            child: const Text('개인정보처리방침'),
           ),
           TextButton(
             onPressed: () => Get.back(),
