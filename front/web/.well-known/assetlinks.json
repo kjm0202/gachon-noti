@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.kjm.gachon_noti",
+        "sha256_cert_fingerprints": ["40:28:2C:76:8A:CF:44:6D:DB:95:64:74:5E:A5:89:D9:3F:9A:AA:7B:D0:AC:98:AB:7A:89:87:37:1F:E1:93:E1"]
+      }
+    }]
