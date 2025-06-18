@@ -213,6 +213,13 @@ class _PwaInstallScreenContent extends StatelessWidget {
                   },
                 ),
               ),
+              const SizedBox(height: 16),
+              Text("아래는 디버깅용 정보입니다: "),
+              Text(
+                  "PWA: ${web.window.matchMedia('(display-mode: standalone)').matches}"),
+              Text(
+                  "isTWA: ${web.document.referrer.startsWith('android-app://com.kjm.gachon_noti')}"),
+              Text("forTWA: ${web.document.referrer}"),
             ],
           ),
         ),
