@@ -9,8 +9,11 @@ class PwaUtils {
       print('디버그 모드: PWA 설치 화면 건너뛰기');
       return true;
     }
-    return web.window.matchMedia('(display-mode: standalone)').matches;
+    return (
+        // Check PWA mode
+        web.window.matchMedia('(display-mode: standalone)').matches ||
+            // Check Android TWA mode
+            web.document.referrer
+                .startsWith('android-app://com.kjm.gachon_noti'));
   }
-
-  // 기타 PWA 관련 유틸리티 함수들을 여기에 추가할 수 있습니다.
 }
