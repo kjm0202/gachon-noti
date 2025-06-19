@@ -1,6 +1,4 @@
 import 'package:gachon_noti_front/app/utils/alternative_text_style.dart';
-import 'package:web/web.dart' as web;
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +6,7 @@ import 'package:flutter_auto_size_text/flutter_auto_size_text.dart';
 import 'package:pwa_install/pwa_install.dart';
 import 'package:get/get.dart';
 import '../../theme.dart';
+import '../utils/platform_utils.dart';
 
 // PWA 모드가 아닐 때 표시되는 화면
 class PwaInstallView extends StatelessWidget {
@@ -191,7 +190,7 @@ class _PwaInstallScreenContent extends StatelessWidget {
                             action: SnackBarAction(
                               label: '새로고침',
                               onPressed: () {
-                                web.window.location.reload();
+                                WebUtils.reloadPage();
                               },
                             ),
                             duration: Duration(days: 365),
@@ -209,21 +208,40 @@ class _PwaInstallScreenContent extends StatelessWidget {
                   icon: const Icon(Icons.home),
                   label: const Text('홈페이지'),
                   onPressed: () {
-                    web.window.open('https://gachon-noti.notion.site/');
+                    WebUtils.openUrl('https://gachon-noti.notion.site/');
                   },
                 ),
               ),
               const SizedBox(height: 16),
               Text("아래는 디버깅용 정보입니다: "),
-              Text(
-                  "PWA: ${web.window.matchMedia('(display-mode: standalone)').matches}"),
-              Text(
-                  "isTWA: ${web.document.referrer.startsWith('android-app://com.kjm.gachon_noti')}"),
-              Text("forTWA: ${web.document.referrer}"),
+              Text("PWA: ${_isPwaStandalone()}"),
+              Text("isTWA: ${_isTWA()}"),
+              Text("forTWA: ${_getReferrer()}"),
             ],
           ),
         ),
       ),
     );
+  }
+
+  // 플랫폼별 PWA 확인 함수
+  String _isPwaStandalone() {
+    if (kIsWeb) {
+      return '웹에서 확인 가능';
+    }
+    return '네이티브 앱에서는 확인 불가';
+  }
+
+  // 플랫폼별 TWA 확인 함수
+  String _isTWA() {
+    final referrer = _getReferrer();
+    return referrer.startsWith('android-app://com.kjm.gachon_noti')
+        ? 'true'
+        : 'false';
+  }
+
+  // 플랫폼별 referrer 가져오기
+  String _getReferrer() {
+    return WebUtils.getCurrentReferrer();
   }
 }

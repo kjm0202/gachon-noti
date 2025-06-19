@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:web/web.dart' as web;
 import 'dart:async';
 
 import 'supabase_provider.dart';
 import 'firebase_provider.dart';
+import '../../utils/platform_utils.dart';
 
 class AuthProvider extends GetxService {
   final SupabaseProvider _supabaseProvider = Get.find<SupabaseProvider>();
@@ -92,7 +92,7 @@ class AuthProvider extends GetxService {
 
       if (kIsWeb) {
         // 웹에서 리다이렉트 URL 설정 (origin만 사용)
-        redirectUrl = web.window.location.origin;
+        redirectUrl = WebUtils.getCurrentOrigin();
       } else {
         // 모바일 앱에서는 딥링크 URL 설정
         redirectUrl = 'io.supabase.flutterquickstart://login-callback';

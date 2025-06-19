@@ -1,5 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:get/get.dart';
+import 'package:flutter/foundation.dart';
 import '../../utils/const.dart';
 import './supabase_provider.dart';
 
@@ -30,10 +31,17 @@ class FirebaseProvider {
       );
       print('FCM permission status: ${settings.authorizationStatus}');
 
-      // 웹 환경에서는 VAPID 키가 필요
-      final token = await FirebaseMessaging.instance.getToken(
-        vapidKey: API.vapidKey,
-      );
+      // 플랫폼별 토큰 가져오기
+      String? token;
+      if (kIsWeb) {
+        // 웹 환경에서는 VAPID 키가 필요
+        token = await FirebaseMessaging.instance.getToken(
+          vapidKey: API.vapidKey,
+        );
+      } else {
+        // 네이티브 환경에서는 기본 토큰 가져오기
+        token = await FirebaseMessaging.instance.getToken();
+      }
 
       if (token != null) {
         // 현재 세션이 있다면 토큰 저장
@@ -50,13 +58,22 @@ class FirebaseProvider {
           }
         });
 
-        FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-          alert: true,
-          badge: true,
-          sound: true,
-        );
+        // 플랫폼별 알림 설정
+        if (kIsWeb) {
+          // 웹에서는 서비스 워커가 백그라운드 메시지를 처리
+          FirebaseMessaging.instance
+              .setForegroundNotificationPresentationOptions(
+            alert: true,
+            badge: true,
+            sound: true,
+          );
+        } else {
+          // 네이티브에서는 백그라운드 메시지 핸들러 설정
+          FirebaseMessaging.onBackgroundMessage(
+              _firebaseMessagingBackgroundHandler);
+        }
 
-        // 앱이 열려 있을 때 수신된 메시지 처리
+        // 앱이 열려 있을 때 수신된 메시지 처리 (모든 플랫폼 공통)
         FirebaseMessaging.onMessage.listen((RemoteMessage message) {
           print('Got a message whilst in the foreground!');
           print('Message data: ${message.data}');
@@ -166,4 +183,14 @@ class FirebaseProvider {
     }
     return true;
   }
+}
+
+// 네이티브 앱에서 백그라운드 메시지 처리를 위한 핸들러
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  print("Handling a background message: ${message.messageId}");
+  print("Message data: ${message.data}");
+
+  // 네이티브에서는 여기서 백그라운드 알림을 처리
+  // 필요시 로컬 알림이나 기타 백그라운드 작업 수행
 }

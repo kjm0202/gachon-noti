@@ -1,1 +1,1 @@
-{"flutter":{"platforms":{"dart":{"lib/firebase_options.dart":{"projectId":"gachon-dorm-noti","configurations":{"web":"1:1006219923383:web:341ae36a5cfd4c4371e232"}}}}}}
+{"flutter":{"platforms":{"dart":{"lib/firebase_options.dart":{"projectId":"gachon-dorm-noti","configurations":{"android":"1:1006219923383:android:b1f74192706bd9db71e232","ios":"1:1006219923383:ios:19f27bc7f0f4786571e232","web":"1:1006219923383:web:341ae36a5cfd4c4371e232"}}}}}}

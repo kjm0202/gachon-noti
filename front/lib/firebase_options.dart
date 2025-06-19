@@ -21,15 +21,9 @@ class DefaultFirebaseOptions {
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for android - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for macos - '
@@ -61,4 +55,22 @@ class DefaultFirebaseOptions {
     storageBucket: 'gachon-dorm-noti.firebasestorage.app',
     measurementId: 'G-9V0X2ZYRZ7',
   );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyDQkBhCgvyHY36ZJ0LukQ4JeqYWjIIa8BE',
+    appId: '1:1006219923383:ios:19f27bc7f0f4786571e232',
+    messagingSenderId: '1006219923383',
+    projectId: 'gachon-dorm-noti',
+    storageBucket: 'gachon-dorm-noti.firebasestorage.app',
+    iosBundleId: 'com.kjm.gachon-noti',
+  );
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyDyt_uE-nBanRDxSOtkjbarVEKrKcm2pQc',
+    appId: '1:1006219923383:android:b1f74192706bd9db71e232',
+    messagingSenderId: '1006219923383',
+    projectId: 'gachon-dorm-noti',
+    storageBucket: 'gachon-dorm-noti.firebasestorage.app',
+  );
+
 }

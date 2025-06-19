@@ -1,14 +1,16 @@
 import 'package:get/get.dart';
-import 'package:web/web.dart' as web;
-import 'dart:js_interop';
+import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../posts/controllers/posts_controller.dart';
 import '../../../data/providers/auth_provider.dart';
 import '../../../routes/app_routes.dart';
 import '../../../data/providers/firebase_provider.dart';
 import '../../../utils/version_checker.dart';
+import '../../../utils/platform_utils.dart';
 
 class HomeController extends GetxController {
   final AuthProvider _authProvider = Get.find<AuthProvider>();
@@ -71,7 +73,9 @@ class HomeController extends GetxController {
     Get.dialog(
       AlertDialog(
         title: const Text('알림 권한 요청'),
-        content: const Text('\'확인\' 버튼을 누른 뒤 나오는 팝업에서 알림 권한을 허용해주세요.'),
+        content: Text(kIsWeb
+            ? '\'확인\' 버튼을 누른 뒤 나오는 팝업에서 알림 권한을 허용해주세요.'
+            : '새로운 공지사항 알림을 받으려면 알림 권한을 허용해주세요.'),
         actions: [
           TextButton(
             onPressed: () {
@@ -86,14 +90,24 @@ class HomeController extends GetxController {
   }
 
   Future<void> _requestNotificationPermission() async {
-    // 웹 알림 권한 요청
-    final status = await web.Notification.requestPermission().toDart;
+    if (kIsWeb) {
+      // 웹에서는 WebUtils를 통해 알림 권한 요청
+      final status = await WebUtils.requestNotificationPermission();
 
-    // 권한 상태 업데이트
-    if (status.toDart == 'granted') {
-      notificationPermission.value = AuthorizationStatus.authorized;
-    } else if (status.toDart == 'denied') {
-      notificationPermission.value = AuthorizationStatus.denied;
+      // 권한 상태 업데이트
+      if (status == 'granted') {
+        notificationPermission.value = AuthorizationStatus.authorized;
+      } else if (status == 'denied') {
+        notificationPermission.value = AuthorizationStatus.denied;
+      }
+    } else {
+      // 네이티브에서는 FCM이 직접 권한 처리
+      final settings = await FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      notificationPermission.value = settings.authorizationStatus;
     }
 
     // 권한을 얻었다면 FCM 초기화
@@ -118,27 +132,30 @@ class HomeController extends GetxController {
     print("_showInAppNotification: $data");
 
     if (data.isNotEmpty) {
-      final String postLink = data['postLink'];
-      final String title = '[${data['boardName']}] 새 공지';
-      final String body = data['title'];
+      final String postLink = data['postLink'] ?? '';
+      final String title = '[${data['boardName'] ?? '알림'}] 새 공지';
+      final String body = data['title'] ?? '새로운 공지사항이 있습니다.';
 
       print("URL 설정: $postLink");
 
-      web.NotificationOptions options = web.NotificationOptions(
-        body: body,
-        data: postLink.toJS,
-      );
-
-      web.Notification.requestPermission().toDart.then((status) {
-        if (status.toDart == 'granted') {
-          web.ServiceWorkerContainer container =
-              web.window.navigator.serviceWorker;
-          container.ready.toDart.then((registration) {
-            registration.showNotification(title, options);
-            print('알림 표시: $title - $body (링크: $postLink)');
-          });
-        }
-      });
+      if (kIsWeb) {
+        // 웹에서는 WebUtils를 통해 알림 표시
+        WebUtils.showWebNotification(title, body, postLink);
+      } else {
+        // 네이티브에서는 Get.snackbar나 로컬 알림으로 표시
+        Get.snackbar(
+          title,
+          body,
+          duration: const Duration(seconds: 5),
+          onTap: postLink.isNotEmpty ? (_) => _launchUrl(postLink) : null,
+          mainButton: postLink.isNotEmpty
+              ? TextButton(
+                  onPressed: () => _launchUrl(postLink),
+                  child: const Text('보기'),
+                )
+              : null,
+        );
+      }
     }
   }
 
@@ -150,9 +167,32 @@ class HomeController extends GetxController {
     // 알림을 통해 특정 게시판이나 게시글로 이동
     currentIndex.value = 1; // 전체 게시물 탭으로 전환
 
-    if (postLink != null) {
-      // web.window.location.href = postLink;
-      web.window.open(postLink, '_blank');
+    if (postLink != null && postLink.isNotEmpty) {
+      _launchUrl(postLink);
+    }
+  }
+
+  Future<void> _launchUrl(String url) async {
+    try {
+      if (kIsWeb) {
+        // 웹에서는 WebUtils를 통해 URL 열기
+        WebUtils.openUrl(url, '_blank');
+      } else {
+        // 네이티브에서는 url_launcher 사용
+        final uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          throw 'Could not launch $url';
+        }
+      }
+    } catch (e) {
+      print('URL 열기 실패: $e');
+      Get.snackbar(
+        '오류',
+        'URL을 열 수 없습니다.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     }
   }
 

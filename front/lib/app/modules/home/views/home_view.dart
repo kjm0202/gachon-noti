@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:web/web.dart' as web;
+import 'package:flutter/foundation.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../posts/views/posts_view.dart';
 import '../../subscription/views/subscription_view.dart';
 import '../controllers/home_controller.dart';
+import '../../../utils/platform_utils.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -138,7 +140,7 @@ class HomeView extends GetView<HomeController> {
           TextButton(
             onPressed: () {
               Get.back();
-              web.window.open('https://gachon-noti-privacy.ven0m.kr/');
+              _openPrivacyPolicy();
             },
             child: const Text('개인정보처리방침'),
           ),
@@ -151,6 +153,18 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
+  void _openPrivacyPolicy() {
+    if (kIsWeb) {
+      WebUtils.openUrl('https://gachon-noti-privacy.ven0m.kr/');
+    } else {
+      // 네이티브에서는 url_launcher 사용
+      launchUrl(
+        Uri.parse('https://gachon-noti-privacy.ven0m.kr/'),
+        mode: LaunchMode.externalApplication,
+      );
+    }
+  }
+
   void _showUpdateSnackbar(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -158,7 +172,16 @@ class HomeView extends GetView<HomeController> {
         action: SnackBarAction(
           label: '업데이트',
           onPressed: () {
-            web.window.location.reload();
+            if (kIsWeb) {
+              WebUtils.reloadPage();
+            } else {
+              // 네이티브에서는 앱스토어로 이동하거나 다른 업데이트 로직 구현
+              Get.snackbar(
+                '업데이트',
+                '앱스토어에서 업데이트를 확인해주세요.',
+                duration: const Duration(seconds: 3),
+              );
+            }
           },
         ),
         duration: const Duration(days: 365),
