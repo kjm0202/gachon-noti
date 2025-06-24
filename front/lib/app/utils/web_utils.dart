@@ -7,7 +7,7 @@ class WebUtils {
   static bool isPwaMode() {
     // 디버그 모드일 때는 항상 PWA 모드로 간주
     if (kDebugMode) {
-      print('디버그 모드: PWA 설치 화면 건너뛰기');
+      debugPrint('디버그 모드: PWA 설치 화면 건너뛰기');
       return true;
     }
     return (
