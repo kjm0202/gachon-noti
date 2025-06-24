@@ -1,16 +1,17 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'dart:async';
 
-import 'supabase_provider.dart';
-import 'firebase_provider.dart';
+import 'supabase_service.dart';
+import 'firebase_service.dart';
 import '../../utils/platform_utils.dart';
 
-class AuthProvider extends GetxService {
+class AuthService extends GetxService {
   final SupabaseProvider _supabaseProvider = Get.find<SupabaseProvider>();
-  late final FirebaseProvider _firebaseProvider;
+  late final FirebaseService _firebaseProvider;
+  late final GoogleSignIn _googleSignIn;
 
   final RxString userId = RxString('');
   final RxString userEmail = RxString('');
@@ -19,8 +20,16 @@ class AuthProvider extends GetxService {
   StreamSubscription<AuthState>? _authSubscription;
   Function? _pendingLoginSuccess;
 
-  Future<AuthProvider> init() async {
-    _firebaseProvider = FirebaseProvider();
+  Future<AuthService> init() async {
+    _firebaseProvider = FirebaseService();
+
+    // Google Sign In 초기화
+    _googleSignIn = GoogleSignIn(
+      serverClientId: kIsWeb
+          ? null // 웹에서는 OAuth 방식 사용
+          : '1006219923383-jmos7nbuisvh963o7uful7rsentp9i3e.apps.googleusercontent.com', // Android/iOS용 서버 클라이언트 ID
+      scopes: ['email', 'profile'],
+    );
 
     // 인증 상태 변화 구독
     _authSubscription =
@@ -88,28 +97,68 @@ class AuthProvider extends GetxService {
       // 로그인 성공 콜백 저장 (인증 상태 변경 시 호출)
       _pendingLoginSuccess = onLoginSuccess;
 
-      String? redirectUrl;
-
       if (kIsWeb) {
-        // 웹에서 리다이렉트 URL 설정 (origin만 사용)
-        redirectUrl = WebUtils.getCurrentOrigin();
+        // 웹에서는 Supabase OAuth 방식 사용
+        String? redirectUrl = WebUtils.getCurrentOrigin();
+
+        await _supabaseProvider.client.auth.signInWithOAuth(
+          OAuthProvider.google,
+          redirectTo: redirectUrl,
+          authScreenLaunchMode: LaunchMode.externalApplication,
+        );
       } else {
-        // 모바일 앱에서는 딥링크 URL 설정
-        redirectUrl = 'io.supabase.flutterquickstart://login-callback';
+        // iOS/Android에서는 google_sign_in 패키지 사용
+        print('모바일에서 Google 로그인 시작');
+
+        // 기존 로그인 상태 확인 및 로그아웃
+        if (await _googleSignIn.isSignedIn()) {
+          await _googleSignIn.signOut();
+        }
+
+        // Google 로그인 시도
+        final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+        if (googleUser == null) {
+          // 사용자가 로그인을 취소함
+          print('Google 로그인이 취소되었습니다');
+          onLoginFailed();
+          _pendingLoginSuccess = null;
+          return false;
+        }
+
+        // Google 인증 정보 획득
+        final GoogleSignInAuthentication googleAuth =
+            await googleUser.authentication;
+
+        if (googleAuth.idToken == null) {
+          print('Google ID 토큰을 가져올 수 없습니다');
+          onLoginFailed();
+          _pendingLoginSuccess = null;
+          return false;
+        }
+
+        print('Google 로그인 성공, Supabase 인증 진행 중...');
+
+        // Supabase에 Google ID 토큰으로 로그인
+        final AuthResponse response =
+            await _supabaseProvider.client.auth.signInWithIdToken(
+          provider: OAuthProvider.google,
+          idToken: googleAuth.idToken!,
+          accessToken: googleAuth.accessToken,
+        );
+
+        if (response.user != null) {
+          print('Supabase 인증 성공: ${response.user!.email}');
+          // onAuthStateChange에서 처리됨
+          return true;
+        } else {
+          print('Supabase 인증 실패');
+          onLoginFailed();
+          _pendingLoginSuccess = null;
+          return false;
+        }
       }
 
-      await _supabaseProvider.client.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: redirectUrl,
-        authScreenLaunchMode:
-            (defaultTargetPlatform == TargetPlatform.android ||
-                    defaultTargetPlatform == TargetPlatform.iOS)
-                ? LaunchMode.inAppBrowserView
-                : LaunchMode.externalApplication,
-      );
-
-      // 웹에서는 리다이렉션이 발생하므로 여기에 도달하지 않을 수 있음
-      // 대신 onAuthStateChange 이벤트에서 처리
       return true;
     } catch (e) {
       print('Login failed: $e');
@@ -131,6 +180,11 @@ class AuthProvider extends GetxService {
     try {
       // 현재 유저 ID 저장 (로그아웃 후에는 사라지므로)
       final currentUserId = userId.value;
+
+      // Google Sign In 로그아웃 (모바일에서만)
+      if (!kIsWeb && await _googleSignIn.isSignedIn()) {
+        await _googleSignIn.signOut();
+      }
 
       // Supabase 로그아웃 처리
       await _supabaseProvider.client.auth.signOut();
