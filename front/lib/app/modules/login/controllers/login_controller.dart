@@ -1,9 +1,9 @@
 import 'package:get/get.dart';
-import '../../../data/providers/auth_provider.dart';
+import '../../../data/services/auth_service.dart';
 import '../../../routes/app_routes.dart';
 
 class LoginController extends GetxController {
-  final AuthProvider _authProvider = Get.find<AuthProvider>();
+  final AuthService _authProvider = Get.find<AuthService>();
   final RxBool isLoading = false.obs;
 
   @override

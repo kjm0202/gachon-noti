@@ -3,19 +3,19 @@ import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../posts/controllers/posts_controller.dart';
-import '../../../data/providers/auth_provider.dart';
+import '../../../data/services/auth_service.dart';
 import '../../../routes/app_routes.dart';
-import '../../../data/providers/firebase_provider.dart';
+import '../../../data/services/firebase_service.dart';
 import '../../../utils/version_checker.dart';
 import '../../../utils/platform_utils.dart';
+import '../../../utils/url_launcher_utils.dart';
 
 class HomeController extends GetxController {
-  final AuthProvider _authProvider = Get.find<AuthProvider>();
+  final AuthService _authProvider = Get.find<AuthService>();
   final RxInt currentIndex = 0.obs;
-  final FirebaseProvider _firebaseProvider = FirebaseProvider();
+  final FirebaseService _firebaseProvider = FirebaseService();
   final Rx<AuthorizationStatus> notificationPermission =
       AuthorizationStatus.authorized.obs;
   // 구독 변경 성공 시 이벤트
@@ -142,19 +142,9 @@ class HomeController extends GetxController {
         // 웹에서는 WebUtils를 통해 알림 표시
         WebUtils.showWebNotification(title, body, postLink);
       } else {
-        // 네이티브에서는 Get.snackbar나 로컬 알림으로 표시
-        Get.snackbar(
-          title,
-          body,
-          duration: const Duration(seconds: 5),
-          onTap: postLink.isNotEmpty ? (_) => _launchUrl(postLink) : null,
-          mainButton: postLink.isNotEmpty
-              ? TextButton(
-                  onPressed: () => _launchUrl(postLink),
-                  child: const Text('보기'),
-                )
-              : null,
-        );
+        // 네이티브에서는 FirebaseProvider에서 로컬 알림으로 처리
+        // 여기서는 추가 처리가 필요한 경우에만 snackbar 표시
+        print('네이티브 앱에서 포그라운드 알림 수신: $title');
       }
     }
   }
@@ -173,27 +163,7 @@ class HomeController extends GetxController {
   }
 
   Future<void> _launchUrl(String url) async {
-    try {
-      if (kIsWeb) {
-        // 웹에서는 WebUtils를 통해 URL 열기
-        WebUtils.openUrl(url, '_blank');
-      } else {
-        // 네이티브에서는 url_launcher 사용
-        final uri = Uri.parse(url);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        } else {
-          throw 'Could not launch $url';
-        }
-      }
-    } catch (e) {
-      print('URL 열기 실패: $e');
-      Get.snackbar(
-        '오류',
-        'URL을 열 수 없습니다.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-    }
+    await UrlLauncherUtils.launchUrl(url);
   }
 
   void changeTab(int index) {

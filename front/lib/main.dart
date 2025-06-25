@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pwa_install/pwa_install.dart';
 import 'package:get/get.dart';
@@ -10,8 +11,9 @@ import 'app/utils/const.dart';
 import 'app/utils/pwa_utils.dart';
 import 'app/routes/app_pages.dart';
 import 'app/bindings/initial_binding.dart';
-import 'app/data/providers/auth_provider.dart';
-import 'app/data/providers/supabase_provider.dart';
+import 'app/data/services/auth_service.dart';
+import 'app/data/services/supabase_service.dart';
+import 'app/utils/notification_utils.dart';
 import 'theme.dart';
 import 'app/modules/pwa_install_view.dart';
 
@@ -39,6 +41,12 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+
+    // 네이티브 플랫폼에서 백그라운드 메시지 핸들러 등록
+    if (!kIsWeb) {
+      FirebaseMessaging.onBackgroundMessage(
+          NotificationUtils.firebaseMessagingBackgroundHandler);
+    }
 
     // Supabase 초기화
     await Supabase.initialize(
@@ -101,7 +109,7 @@ class MyApp extends StatelessWidget {
     await supabaseProvider.init();
     Get.put(supabaseProvider);
 
-    final authProvider = AuthProvider();
+    final authProvider = AuthService();
     await authProvider.init();
     Get.put(authProvider);
   }
