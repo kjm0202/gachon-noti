@@ -62,6 +62,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '1006219923383',
     projectId: 'gachon-dorm-noti',
     storageBucket: 'gachon-dorm-noti.firebasestorage.app',
+    androidClientId: '1006219923383-65qunqhsmpnvim54mu3a09t3nj7kr25t.apps.googleusercontent.com',
+    iosClientId: '1006219923383-lb69jgc431qqkon1l89ec7mhldmglv0s.apps.googleusercontent.com',
     iosBundleId: 'com.kjm.gachon-noti',
   );
 
