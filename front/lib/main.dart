@@ -1,3 +1,4 @@
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -35,9 +36,8 @@ void main() async {
   // PWA 모드 확인
   final bool isPwa = PwaUtils.isPwaMode();
 
-  // PWA 모드이거나 디버그 모드일 때 Firebase와 Supabase 초기화
-  if (isPwa || kDebugMode) {
-    // Firebase 초기화
+  // Firebase 초기화 (웹이 아니거나 PWA 모드일 때)
+  if (!kIsWeb || isPwa || kDebugMode) {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
@@ -46,6 +46,14 @@ void main() async {
     if (!kIsWeb) {
       FirebaseMessaging.onBackgroundMessage(
           NotificationUtils.firebaseMessagingBackgroundHandler);
+      FlutterError.onError = (errorDetails) {
+        FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+      };
+      // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
+      PlatformDispatcher.instance.onError = (error, stack) {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+        return true;
+      };
     }
 
     // Supabase 초기화
@@ -53,12 +61,14 @@ void main() async {
       url: API.supabaseUrl,
       anonKey: API.supabaseAnonKey,
     );
+  }
 
-    // GetX 앱 실행
-    runApp(const MyApp());
-  } else {
-    // PWA 설치 화면
+  // PWA 모드가 아닌 웹에서는 PWA 설치 화면 표시
+  if (kIsWeb && !isPwa && !kDebugMode) {
     runApp(const PwaInstallView());
+  } else {
+    // 메인 앱 실행
+    runApp(const MyApp());
   }
 }
 
@@ -70,7 +80,7 @@ class MyApp extends StatelessWidget {
     final materialTheme = MaterialTheme(Theme.of(context).textTheme);
 
     return FutureBuilder(
-      // 서비스 제공자들이 초기화되길 기다립니다
+      // 서비스 제공자들이 초기화 완료되길 기다림
       future: _initializeServices(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
