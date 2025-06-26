@@ -55,11 +55,13 @@ class HomeController extends GetxController {
 
   // 업데이트 확인 메서드
   Future<void> _checkForUpdates() async {
-    try {
-      final needsUpdate = await VersionChecker.needsUpdate();
-      updateAvailable.value = needsUpdate;
-    } catch (e) {
-      print('업데이트 확인 중 오류 발생: $e');
+    if (kIsWeb) {
+      try {
+        final needsUpdate = await VersionChecker.needsUpdate();
+        updateAvailable.value = needsUpdate;
+      } catch (e) {
+        print('업데이트 확인 중 오류 발생: $e');
+      }
     }
   }
 
