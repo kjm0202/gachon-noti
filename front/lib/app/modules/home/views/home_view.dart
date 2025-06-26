@@ -6,6 +6,7 @@ import '../../posts/views/posts_view.dart';
 import '../../subscription/views/subscription_view.dart';
 import '../controllers/home_controller.dart';
 import '../../../utils/platform_utils.dart';
+import '../../../utils/admob_banner_widget.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -56,17 +57,26 @@ class HomeView extends GetView<HomeController> {
               ],
             )),
       ),
-      bottomNavigationBar: Obx(() => NavigationBar(
-            selectedIndex: controller.currentIndex.value,
-            onDestinationSelected: controller.changeTab,
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.notifications),
-                label: '구독 설정',
-              ),
-              NavigationDestination(icon: Icon(Icons.article), label: '전체 게시물'),
-            ],
-          )),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 배너 광고 위젯 (네비게이션 바 위쪽)
+          const AdMobBannerWidget(),
+          // 네비게이션 바
+          Obx(() => NavigationBar(
+                selectedIndex: controller.currentIndex.value,
+                onDestinationSelected: controller.changeTab,
+                destinations: const [
+                  NavigationDestination(
+                    icon: Icon(Icons.notifications),
+                    label: '구독 설정',
+                  ),
+                  NavigationDestination(
+                      icon: Icon(Icons.article), label: '전체 게시물'),
+                ],
+              )),
+        ],
+      ),
     );
   }
 
