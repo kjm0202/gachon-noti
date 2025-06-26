@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 class VersionChecker {
   /// 깃허브의 pubspec.yaml 파일 URL
   static const String _pubspecUrl =
-      'https://github.com/kjm0202/gachon-noti/blob/supabase/front/pubspec.yaml';
+      'https://raw.githubusercontent.com/kjm0202/gachon-noti/refs/heads/supabase/front/pubspec.yaml';
 
   /// 최신 버전과 현재 버전을 비교하여 업데이트 필요 여부 확인
   static Future<bool> needsUpdate() async {
