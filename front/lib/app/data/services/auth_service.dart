@@ -23,13 +23,14 @@ class AuthService extends GetxService {
   Future<AuthService> init() async {
     _firebaseProvider = FirebaseService();
 
-    // Google Sign In 초기화
-    _googleSignIn = GoogleSignIn(
-      serverClientId: kIsWeb
-          ? null // 웹에서는 OAuth 방식 사용
-          : '1006219923383-jmos7nbuisvh963o7uful7rsentp9i3e.apps.googleusercontent.com', // Android/iOS용 서버 클라이언트 ID
-      scopes: ['email', 'profile'],
-    );
+    // Google Sign In 초기화 (모바일용)
+    if (!kIsWeb) {
+      _googleSignIn = GoogleSignIn(
+        serverClientId:
+            '1006219923383-jmos7nbuisvh963o7uful7rsentp9i3e.apps.googleusercontent.com',
+        scopes: ['email', 'profile'],
+      );
+    }
 
     // 인증 상태 변화 구독
     _authSubscription =
