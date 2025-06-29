@@ -6,7 +6,7 @@ import 'platform_utils.dart';
 
 /// URL 실행 관련 공통 유틸리티 함수들
 class UrlLauncherUtils {
-  /// 플랫폼에 맞는 방식으로 URL을 엽니다
+  /// 플랫폼에 맞는 방식으로 URL 오픈
   static Future<void> launchUrl(String url) async {
     try {
       debugPrint('URL 열기 시도: $url');
