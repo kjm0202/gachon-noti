@@ -21,6 +21,15 @@ class AdMobService extends GetxController {
           ? 'ca-app-pub-2873399578890001/3360259499' // iOS 실제 배너 광고 단위 ID
           : 'ca-app-pub-2873399578890001/1187174683'); // Android 실제 배너 광고 단위 ID
 
+  // 네이티브 광고 단위 ID
+  static final String _nativeAdUnitId = kDebugMode
+      ? (Platform.isIOS
+          ? 'ca-app-pub-3940256099942544/3986624511' // iOS 테스트 네이티브 광고 단위 ID
+          : 'ca-app-pub-3940256099942544/2247696110') // Android 테스트 네이티브 광고 단위 ID
+      : (Platform.isIOS
+          ? 'ca-app-pub-2873399578890001/5114364294' // iOS 실제 네이티브 광고 단위 ID
+          : 'ca-app-pub-2873399578890001/4705416160'); // Android 실제 네이티브 광고 단위 ID
+
   @override
   void onInit() {
     super.onInit();
