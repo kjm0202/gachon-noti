@@ -1,0 +1,70 @@
+{
+  "project_info": {
+    "project_number": "1006219923383",
+    "project_id": "gachon-dorm-noti",
+    "storage_bucket": "gachon-dorm-noti.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1006219923383:android:b1f74192706bd9db71e232",
+        "android_client_info": {
+          "package_name": "com.kjm.gachon_noti"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1006219923383-65qunqhsmpnvim54mu3a09t3nj7kr25t.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kjm.gachon_noti",
+            "certificate_hash": "7196ad8ba69e49a5c8ec97956539c3696410dc5e"
+          }
+        },
+        {
+          "client_id": "1006219923383-ib34g1i98j9n4hjush34vubsll6de84l.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kjm.gachon_noti",
+            "certificate_hash": "1732066d125f3f75671c1682ac48e53fb1e6ee75"
+          }
+        },
+        {
+          "client_id": "1006219923383-t6hsor226ns5gu5fofil5u2i0id3o1f4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kjm.gachon_noti",
+            "certificate_hash": "6db1fe1fff292a959affdebb813ea5f081e4485c"
+          }
+        },
+        {
+          "client_id": "1006219923383-8veakhloto3nko81etjabj904qaoa3mn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDyt_uE-nBanRDxSOtkjbarVEKrKcm2pQc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1006219923383-8veakhloto3nko81etjabj904qaoa3mn.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1006219923383-lb69jgc431qqkon1l89ec7mhldmglv0s.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.kjm.gachon-noti"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

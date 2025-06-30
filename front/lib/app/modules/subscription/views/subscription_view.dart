@@ -14,7 +14,7 @@ class SubscriptionView extends GetView<SubscriptionController> {
         return const Center(child: CircularProgressIndicator());
       }
 
-      // 저장/취소 버튼의 높이를 계산합니다.
+      // 저장/취소 버튼의 높이 계산
       // 버튼 높이 + 패딩 + 마진 = 약 100
       final bottomButtonsHeight = controller.hasChanges.value ? 100.0 : 0.0;
 

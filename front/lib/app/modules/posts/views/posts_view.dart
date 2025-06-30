@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:flutter_auto_size_text/flutter_auto_size_text.dart';
 import '../../../utils/alternative_text_style.dart';
 import '../../../utils/korean_wrapper.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../../../utils/url_launcher_utils.dart';
 import 'package:intl/intl.dart';
 import '../controllers/posts_controller.dart';
 
@@ -348,16 +348,7 @@ class PostsView extends GetView<PostsController> {
 
   // URL 실행
   Future<void> _launchUrl(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      Get.snackbar(
-        '오류',
-        'URL을 열 수 없습니다.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-    }
+    await UrlLauncherUtils.launchUrl(url);
   }
 
   // 날짜 포맷팅 함수

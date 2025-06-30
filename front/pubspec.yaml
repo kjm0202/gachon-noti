@@ -2,7 +2,7 @@ name: gachon_noti_front
 description: "Gachon University Notice Service"
 publish_to: 'none'
 
-version: 1.0.1+2
+version: 1.1.0+3
 
 environment:
   sdk: ^3.5.4
@@ -12,8 +12,11 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
-  firebase_core: ^3.12.1
-  firebase_messaging: ^15.2.4
+  firebase_core: ^3.14.0
+  firebase_messaging: ^15.2.7
+  # firebase_analytics: ^11.5.0
+  firebase_crashlytics: ^4.3.7
+  flutter_local_notifications: ^19.3.0
   web: ^1.1.1
   pwa_install:
     git:
@@ -24,9 +27,11 @@ dependencies:
   flutter_auto_size_text: ^4.1.0
   package_info_plus: ^8.3.0
   intl: ^0.20.2
-  http: ^1.3.0
-  supabase_flutter: ^2.9.0
+  http: ^1.4.0
+  supabase_flutter: ^2.9.1
   get: ^4.7.2
+  google_sign_in: ^6.3.0
+  google_mobile_ads: ^6.0.0
 
 dependency_overrides:
 
@@ -35,6 +40,7 @@ dev_dependencies:
     sdk: flutter
 
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
 
@@ -42,3 +48,9 @@ flutter:
 
   assets:
     - assets/icons/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/app_icon_maskable_1024.png"
+  remove_alpha_ios: true
