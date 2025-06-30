@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gachon_noti_front/app/utils/unified_banner_widget.dart';
 import 'package:get/get.dart';
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -61,7 +62,9 @@ class HomeView extends GetView<HomeController> {
         mainAxisSize: MainAxisSize.min,
         children: [
           // 배너 광고 위젯 (네비게이션 바 위쪽)
-          const AdMobBannerWidget(),
+          const UnifiedBannerWidget(
+            adfitAdUnit: 'DAN-U8bbT9CwMuyswC2r',
+          ),
           // 네비게이션 바
           Obx(() => NavigationBar(
                 selectedIndex: controller.currentIndex.value,

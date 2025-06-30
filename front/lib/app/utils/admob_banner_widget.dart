@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../data/services/admob_service.dart';
 
+// 참고: 웹과 모바일에서 다른 광고를 표시하려면 UnifiedBannerWidget을 사용해야 함
+// 이 위젯은 모바일 전용 AdMob 배너임
 class AdMobBannerWidget extends StatelessWidget {
   const AdMobBannerWidget({super.key});
 
