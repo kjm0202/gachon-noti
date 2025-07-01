@@ -115,7 +115,7 @@ class MyApp extends StatelessWidget {
 
   // 서비스 초기화를 위한 메소드
   Future<void> _initializeServices() async {
-    final supabaseProvider = SupabaseProvider();
+    final supabaseProvider = SupabaseService();
     await supabaseProvider.init();
     Get.put(supabaseProvider);
 

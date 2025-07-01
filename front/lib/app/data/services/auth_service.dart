@@ -9,7 +9,7 @@ import 'firebase_service.dart';
 import '../../utils/platform_utils.dart';
 
 class AuthService extends GetxService {
-  final SupabaseProvider _supabaseProvider = Get.find<SupabaseProvider>();
+  final SupabaseService _supabaseProvider = Get.find<SupabaseService>();
   late final FirebaseService _firebaseProvider;
   late final GoogleSignIn _googleSignIn;
 
