@@ -32,7 +32,7 @@ class HomeView extends GetView<HomeController> {
     });
 
     return PopScope(
-      canPop: false, // 시스템의 뒤로가기 동작을 막습니다.
+      canPop: kIsWeb ? true : false, // 시스템의 뒤로가기 동작을 막습니다.
       onPopInvoked: (didPop) async {
         if (didPop) {
           return;
