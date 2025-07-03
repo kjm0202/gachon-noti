@@ -6,6 +6,8 @@ import '../modules/login/bindings/login_binding.dart';
 import '../modules/login/views/login_view.dart';
 import '../modules/posts/bindings/posts_binding.dart';
 import '../modules/posts/views/posts_view.dart';
+import '../modules/settings/bindings/settings_binding.dart';
+import '../modules/settings/views/settings_view.dart';
 import '../modules/subscription/bindings/subscription_binding.dart';
 import '../modules/subscription/views/subscription_view.dart';
 import 'app_routes.dart';
@@ -33,6 +35,11 @@ class AppPages {
       name: Routes.SUBSCRIPTION,
       page: () => const SubscriptionView(),
       binding: SubscriptionBinding(),
+    ),
+    GetPage(
+      name: Routes.SETTINGS,
+      page: () => const SettingsView(),
+      binding: SettingsBinding(),
     ),
   ];
 }
