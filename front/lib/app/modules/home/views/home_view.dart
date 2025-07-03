@@ -200,7 +200,7 @@ class HomeView extends GetView<HomeController> {
               height: 48,
             ), */
             const SizedBox(height: 16),
-            const Text('Made by 무적소웨 졸업생'),
+            const Text('Made by 베놈 (ven0m)'),
             const Text('이 앱은 가천대학교 공식 앱이 아닙니다.'),
           ],
         ),
