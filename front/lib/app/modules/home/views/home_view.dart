@@ -8,6 +8,7 @@ import '../../subscription/views/subscription_view.dart';
 import '../controllers/home_controller.dart';
 import '../../../utils/platform_utils.dart';
 import '../../../utils/admob_banner_widget.dart';
+import '../../../data/services/admob_service.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -30,55 +31,109 @@ class HomeView extends GetView<HomeController> {
       }
     });
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Obx(() => Text(
-              controller.currentIndex.value == 0 ? '구독 설정' : '전체 게시물',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            )),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _showLogoutDialog,
-            tooltip: '로그아웃',
-          ),
-          IconButton(
-            icon: const Icon(Icons.info),
-            onPressed: _showAboutDialog,
-            tooltip: '앱 정보',
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: Obx(() => IndexedStack(
-              index: controller.currentIndex.value,
-              children: const [
-                SubscriptionView(),
-                PostsView(),
-              ],
-            )),
-      ),
-      bottomNavigationBar: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 배너 광고 위젯 (네비게이션 바 위쪽)
-          const UnifiedBannerWidget(
-            adfitAdUnit: 'DAN-U8bbT9CwMuyswC2r',
-          ),
-          // 네비게이션 바
-          Obx(() => NavigationBar(
-                selectedIndex: controller.currentIndex.value,
-                onDestinationSelected: controller.changeTab,
-                destinations: const [
-                  NavigationDestination(
-                    icon: Icon(Icons.notifications),
-                    label: '구독 설정',
+    return PopScope(
+      canPop: false, // 시스템의 뒤로가기 동작을 막습니다.
+      onPopInvoked: (didPop) async {
+        if (didPop) {
+          return;
+        }
+
+        final bool? shouldExit = await Get.dialog<bool>(
+          Dialog(
+            insetPadding: EdgeInsets.symmetric(horizontal: Get.width * 0.05),
+            child: Container(
+              width: Get.width * 0.9,
+              padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    '앱을 종료하시겠습니까?',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  NavigationDestination(
-                      icon: Icon(Icons.article), label: '전체 게시물'),
+                  const SizedBox(height: 12),
+                  // 300x250 중간 직사각형 배너 광고 추가
+                  if (!kIsWeb) ...[
+                    const AdMobMediumRectangleBannerWidget(),
+                    const SizedBox(height: 8),
+                  ],
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      TextButton(
+                        onPressed: () => Get.back(result: false), // 종료 취소
+                        child: const Text('취소'),
+                      ),
+                      TextButton(
+                        onPressed: () => Get.back(result: true), // 종료 확인
+                        child: const Text('확인'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        if (shouldExit == true) {
+          // Get.back()을 호출하여 앱을 종료합니다.
+          // iOS에서는 앱이 완전히 종료되지 않고 백그라운드로 갈 수 있습니다.
+          Get.back();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Obx(() => Text(
+                controller.currentIndex.value == 0 ? '구독 설정' : '전체 게시물',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              )),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: _showLogoutDialog,
+              tooltip: '로그아웃',
+            ),
+            IconButton(
+              icon: const Icon(Icons.info),
+              onPressed: _showAboutDialog,
+              tooltip: '앱 정보',
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: Obx(() => IndexedStack(
+                index: controller.currentIndex.value,
+                children: const [
+                  SubscriptionView(),
+                  PostsView(),
                 ],
               )),
-        ],
+        ),
+        bottomNavigationBar: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 배너 광고 위젯 (네비게이션 바 위쪽)
+            const UnifiedBannerWidget(
+              adfitAdUnit: 'DAN-U8bbT9CwMuyswC2r',
+            ),
+            // 네비게이션 바
+            Obx(() => NavigationBar(
+                  selectedIndex: controller.currentIndex.value,
+                  onDestinationSelected: controller.changeTab,
+                  destinations: const [
+                    NavigationDestination(
+                      icon: Icon(Icons.notifications),
+                      label: '구독 설정',
+                    ),
+                    NavigationDestination(
+                        icon: Icon(Icons.article), label: '전체 게시물'),
+                  ],
+                )),
+          ],
+        ),
       ),
     );
   }
@@ -145,7 +200,7 @@ class HomeView extends GetView<HomeController> {
               height: 48,
             ), */
             const SizedBox(height: 16),
-            const Text('Made by 무적소웨 졸업생'),
+            const Text('Made by 베놈 (ven0m)'),
             const Text('이 앱은 가천대학교 공식 앱이 아닙니다.'),
           ],
         ),

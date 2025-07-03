@@ -2,7 +2,7 @@ import 'package:get/get.dart';
 import '../../../data/services/supabase_service.dart';
 
 class PostsController extends GetxController {
-  final SupabaseProvider _supabaseProvider = Get.find<SupabaseProvider>();
+  final SupabaseService _supabaseProvider = Get.find<SupabaseService>();
   final String boardId;
 
   // 관찰 가능한 상태들

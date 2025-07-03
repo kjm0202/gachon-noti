@@ -2,7 +2,7 @@ import 'package:get/get.dart';
 import '../../../data/services/supabase_service.dart';
 
 class SubscriptionController extends GetxController {
-  final SupabaseProvider _supabaseProvider = Get.find<SupabaseProvider>();
+  final SupabaseService _supabaseProvider = Get.find<SupabaseService>();
   final RxString userId = RxString('');
   final RxBool loading = true.obs;
   final RxString subscriptionId = RxString('');

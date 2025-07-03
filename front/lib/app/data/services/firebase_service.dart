@@ -181,10 +181,10 @@ class FirebaseService {
         if (payload != null && payload.isNotEmpty) {
           print('앱이 백그라운드 알림 클릭으로 시작됨: $payload');
           // 약간의 지연 후 처리 (앱이 완전히 초기화된 후)
-          Future.delayed(const Duration(seconds: 1), () {
-            final message = RemoteMessage(data: {'postLink': payload});
-            _notificationClickCallback?.call(message);
-          });
+          // Future.delayed(const Duration(seconds: 1), () {
+          final message = RemoteMessage(data: {'postLink': payload});
+          _notificationClickCallback?.call(message);
+          // });
         }
       }
     } catch (e) {
@@ -241,7 +241,7 @@ class FirebaseService {
 
     print('Saving token "$fcmToken" for userId="$userId" to user_devices...');
     try {
-      final supabase = Get.find<SupabaseProvider>().client;
+      final supabase = Get.find<SupabaseService>().client;
 
       // user_devices 테이블에서 같은 userId와 fcmToken을 가진 레코드 확인
       final existing = await supabase
@@ -276,7 +276,7 @@ class FirebaseService {
       final token = await FirebaseMessaging.instance.getToken();
 
       if (token != null) {
-        final supabase = Get.find<SupabaseProvider>().client;
+        final supabase = Get.find<SupabaseService>().client;
 
         // 현재 디바이스의 토큰만 삭제
         await supabase
