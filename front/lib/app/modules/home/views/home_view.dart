@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:gachon_noti_front/app/utils/unified_banner_widget.dart';
 import 'package:get/get.dart';
 import 'package:flutter/foundation.dart';
@@ -6,7 +7,7 @@ import '../../posts/views/posts_view.dart';
 import '../../subscription/views/subscription_view.dart';
 import '../controllers/home_controller.dart';
 import '../../../utils/admob_banner_widget.dart';
-import '../../../utils/web_utils.dart';
+import '../../../utils/platform_utils.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -25,7 +26,7 @@ class HomeView extends GetView<HomeController> {
     // 업데이트 확인 리스너 설정
     ever(controller.updateAvailable, (available) {
       if (available) {
-        _showUpdateSnackbar(context);
+        controller.showUpdateSnackbar(context);
       }
     });
 
@@ -66,7 +67,7 @@ class HomeView extends GetView<HomeController> {
                         child: const Text('취소'),
                       ),
                       TextButton(
-                        onPressed: () => Get.back(result: true), // 종료 확인
+                        onPressed: () => SystemNavigator.pop(), // 종료 확인
                         child: const Text('확인'),
                       ),
                     ],
@@ -112,18 +113,121 @@ class HomeView extends GetView<HomeController> {
             const UnifiedBannerWidget(
               adfitAdUnit: 'DAN-U8bbT9CwMuyswC2r',
             ),
-            // 네비게이션 바
-            Obx(() => NavigationBar(
-                  selectedIndex: controller.currentIndex.value,
-                  onDestinationSelected: controller.changeTab,
-                  destinations: const [
-                    NavigationDestination(
-                      icon: Icon(Icons.notifications),
-                      label: '구독 설정',
+            // 네비게이션 바 (가로형 레이아웃으로 두께 감소)
+            Obx(() => Container(
+                  height: 60, // 높이를 명시적으로 설정하여 두께 조절
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                            .bottomNavigationBarTheme
+                            .backgroundColor ??
+                        Theme.of(context).colorScheme.surface,
+                    border: Border(
+                      top: BorderSide(
+                        color: Theme.of(context).dividerColor.withOpacity(0.3),
+                        width: 0.5,
+                      ),
                     ),
-                    NavigationDestination(
-                        icon: Icon(Icons.article), label: '전체 게시물'),
-                  ],
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () => controller.changeTab(0),
+                            child: Container(
+                              height: 60,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.notifications,
+                                    color: controller.currentIndex.value == 0
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '구독 설정',
+                                    style: TextStyle(
+                                      color: controller.currentIndex.value == 0
+                                          ? Theme.of(context)
+                                              .colorScheme
+                                              .primary
+                                          : Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                      fontSize: 14,
+                                      fontWeight:
+                                          controller.currentIndex.value == 0
+                                              ? FontWeight.w600
+                                              : FontWeight.normal,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // 구분선
+                      Container(
+                        width: 0.5,
+                        height: 32,
+                        color: Theme.of(context).dividerColor.withOpacity(0.3),
+                      ),
+                      Expanded(
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () => controller.changeTab(1),
+                            child: Container(
+                              height: 60,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.article,
+                                    color: controller.currentIndex.value == 1
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '전체 게시물',
+                                    style: TextStyle(
+                                      color: controller.currentIndex.value == 1
+                                          ? Theme.of(context)
+                                              .colorScheme
+                                              .primary
+                                          : Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                      fontSize: 14,
+                                      fontWeight:
+                                          controller.currentIndex.value == 1
+                                              ? FontWeight.w600
+                                              : FontWeight.normal,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 )),
           ],
         ),
@@ -136,31 +240,6 @@ class HomeView extends GetView<HomeController> {
       '성공',
       '구독 설정이 저장되었습니다. 게시물이 업데이트되었습니다.',
       duration: const Duration(seconds: 2),
-    );
-  }
-
-  void _showUpdateSnackbar(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('새로운 버전이 출시되었습니다.'),
-        action: SnackBarAction(
-          label: '업데이트',
-          onPressed: () {
-            if (kIsWeb) {
-              WebUtils.reloadPage();
-            } else {
-              // 네이티브에서는 앱스토어로 이동하거나 다른 업데이트 로직 구현
-              Get.snackbar(
-                '업데이트',
-                '앱스토어에서 업데이트를 확인해주세요.',
-                duration: const Duration(seconds: 3),
-              );
-            }
-          },
-        ),
-        duration: const Duration(days: 365),
-        behavior: SnackBarBehavior.floating,
-      ),
     );
   }
 }
