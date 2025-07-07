@@ -3,8 +3,6 @@ import 'package:get/get.dart';
 import 'package:flutter_auto_size_text/flutter_auto_size_text.dart';
 import '../../../utils/alternative_text_style.dart';
 import '../../../utils/korean_wrapper.dart';
-import '../../../utils/url_launcher_utils.dart';
-import 'package:intl/intl.dart';
 import '../controllers/posts_controller.dart';
 
 class PostsView extends GetView<PostsController> {
@@ -37,7 +35,7 @@ class PostsView extends GetView<PostsController> {
 
       return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
         child: Row(
           children: availableTags.map((tag) {
             final isSelected = controller.selectedTagFilter.value == tag;
@@ -68,31 +66,19 @@ class PostsView extends GetView<PostsController> {
 
   // 검색 바 UI 구성
   Widget _buildSearchBar() {
-    final TextEditingController searchController = TextEditingController();
-    final FocusNode searchFocusNode = FocusNode();
-
-    searchController.text = controller.searchQuery.value;
-
-    // 검색어 변경 리스너 등록
-    searchController.addListener(() {
-      controller.searchByTitle(searchController.text);
-    });
-
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Obx(() {
         return TextField(
-          controller: searchController,
-          focusNode: searchFocusNode,
+          controller: controller.searchController,
+          focusNode: controller.searchFocusNode,
           decoration: InputDecoration(
             hintText: '제목으로 검색',
             prefixIcon: const Icon(Icons.search),
             suffixIcon: controller.searchQuery.value.isNotEmpty
                 ? IconButton(
                     icon: const Icon(Icons.clear),
-                    onPressed: () {
-                      searchController.clear();
-                    },
+                    onPressed: controller.clearSearch,
                   )
                 : null,
             border: OutlineInputBorder(
@@ -109,7 +95,7 @@ class PostsView extends GetView<PostsController> {
           textInputAction: TextInputAction.search,
           onSubmitted: (value) {
             // 키보드에서 검색 버튼을 눌렀을 때 포커스 해제
-            searchFocusNode.unfocus();
+            controller.unfocusSearch();
           },
         );
       }),
@@ -166,11 +152,11 @@ class PostsView extends GetView<PostsController> {
       return RefreshIndicator(
         onRefresh: controller.forceRefresh,
         child: NotificationListener<ScrollNotification>(
-          onNotification: _handleScrollNotification,
+          onNotification: controller.handleScrollNotification,
           child: ListView.builder(
             itemCount: controller.filteredPosts.length +
                 (controller.hasMoreData.value ? 1 : 0),
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: 4),
             itemBuilder: (context, idx) {
               // 마지막 항목이고 더 로드할 데이터가 있는 경우 로딩 인디케이터 표시
               if (idx == controller.filteredPosts.length) {
@@ -181,7 +167,7 @@ class PostsView extends GetView<PostsController> {
               final String boardName = controller.getBoardName(
                 post['board_id'] ?? '',
               );
-              final String dateStr = _formatDate(post['pub_date']);
+              final String dateStr = controller.formatDate(post['pub_date']);
 
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -193,7 +179,7 @@ class PostsView extends GetView<PostsController> {
                   borderRadius: BorderRadius.circular(12),
                   onTap: () {
                     if (post['link'] != null) {
-                      _launchUrl(post['link']);
+                      controller.launchUrl(post['link']);
                     }
                   },
                   child: Stack(
@@ -313,24 +299,6 @@ class PostsView extends GetView<PostsController> {
     });
   }
 
-  // 스크롤 이벤트 처리
-  bool _handleScrollNotification(ScrollNotification notification) {
-    if (notification is ScrollEndNotification) {
-      if (notification.metrics.pixels >=
-          notification.metrics.maxScrollExtent * 0.9) {
-        _loadMoreData();
-      }
-    }
-    return false;
-  }
-
-  // 추가 데이터 로드
-  Future<void> _loadMoreData() async {
-    if (!controller.loadingMore.value && controller.hasMoreData.value) {
-      await controller.loadMorePosts();
-    }
-  }
-
   // 로딩 인디케이터 위젯
   Widget _buildLoadingIndicator() {
     return Container(
@@ -344,36 +312,5 @@ class PostsView extends GetView<PostsController> {
         ),
       ),
     );
-  }
-
-  // URL 실행
-  Future<void> _launchUrl(String url) async {
-    await UrlLauncherUtils.launchUrl(url);
-  }
-
-  // 날짜 포맷팅 함수
-  String _formatDate(String? dateStr) {
-    if (dateStr == null || dateStr.isEmpty) return '';
-
-    try {
-      final date = DateTime.parse(dateStr);
-      final now = DateTime.now();
-      final difference = now.difference(date);
-
-      // 오늘 날짜인 경우 시간만 표시
-      if (difference.inDays == 0) {
-        return DateFormat('HH:mm').format(date);
-      }
-      // 올해인 경우 월-일만 표시
-      else if (date.year == now.year) {
-        return DateFormat('MM-dd').format(date);
-      }
-      // 다른 연도인 경우 연-월-일 표시
-      else {
-        return DateFormat('yyyy-MM-dd').format(date);
-      }
-    } catch (e) {
-      return dateStr;
-    }
   }
 }
