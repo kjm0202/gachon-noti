@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../utils/alternative_text_style.dart';
 import '../controllers/subscription_controller.dart';
-import '../../home/controllers/home_controller.dart';
 
 class SubscriptionView extends GetView<SubscriptionController> {
   const SubscriptionView({super.key});
@@ -90,8 +89,9 @@ class SubscriptionView extends GetView<SubscriptionController> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Theme.of(context).primaryColor,
                             ),
-                            onPressed:
-                                controller.loading.value ? null : _saveChanges,
+                            onPressed: controller.loading.value
+                                ? null
+                                : controller.saveChangesAndNotifyHome,
                           ),
                         ],
                       ),
@@ -106,17 +106,5 @@ class SubscriptionView extends GetView<SubscriptionController> {
         ],
       );
     });
-  }
-
-  Future<void> _saveChanges() async {
-    final success = await controller.saveAllSubscriptions();
-
-    if (success) {
-      // 홈 컨트롤러의 handleSubscriptionChange 메서드 호출
-      if (Get.isRegistered<HomeController>()) {
-        final homeController = Get.find<HomeController>();
-        await homeController.handleSubscriptionChange();
-      }
-    }
   }
 }
