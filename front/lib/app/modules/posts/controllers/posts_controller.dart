@@ -1,5 +1,8 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import '../../../data/services/supabase_service.dart';
+import '../../../utils/url_launcher_utils.dart';
 
 class PostsController extends GetxController {
   final SupabaseService _supabaseProvider = Get.find<SupabaseService>();
@@ -16,6 +19,10 @@ class PostsController extends GetxController {
   final RxString selectedTagFilter = 'all'.obs;
   final RxBool hasMoreData = true.obs;
 
+  // 검색 바 관련 컨트롤러들
+  late final TextEditingController searchController;
+  late final FocusNode searchFocusNode;
+
   // 페이지네이션 관련 변수
   int _page = 1;
   static const int _limit = 20; // a
@@ -31,7 +38,23 @@ class PostsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    // 검색 컨트롤러 초기화
+    searchController = TextEditingController();
+    searchFocusNode = FocusNode();
+
+    // 검색어 변경 리스너 등록
+    searchController.addListener(() {
+      searchByTitle(searchController.text);
+    });
+
     initUserAndFetchPosts();
+  }
+
+  @override
+  void onClose() {
+    searchController.dispose();
+    searchFocusNode.dispose();
+    super.onClose();
   }
 
   // 페이지를 리셋하고 처음부터 데이터를 가져오는 메소드
@@ -208,8 +231,53 @@ class PostsController extends GetxController {
     await fetchPosts(useCache: false);
   }
 
-  // 강제 새로고침 수행
+  // 구독 정보 새로고침
+  Future<void> refreshSubscriptions() async {
+    try {
+      final user = _supabaseProvider.client.auth.currentUser;
+
+      if (user != null) {
+        // userId로 구독 문서 찾기
+        final response = await _supabaseProvider.client
+            .from('subscriptions')
+            .select('boards')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        if (response != null) {
+          final newBoards = List<String>.from(response['boards'] ?? []);
+          _cachedSubscribedBoards.value = newBoards;
+          subscribedBoards.value = newBoards;
+        } else {
+          _cachedSubscribedBoards.clear();
+          subscribedBoards.clear();
+        }
+      } else {
+        _cachedSubscribedBoards.clear();
+        subscribedBoards.clear();
+      }
+    } catch (e) {
+      print('Error refreshing subscriptions: $e');
+    }
+  }
+
+  // 강제 새로고침 수행 (구독 정보도 함께 새로고침)
   Future<void> forceRefresh() async {
+    await refreshSubscriptions(); // 구독 정보 먼저 새로고침
+    resetPagination(); // 페이지네이션 리셋
+    await fetchPosts(useCache: false, forceRefresh: true);
+  }
+
+  // 구독 변경 후 전체 새로고침 (태그 필터도 리셋)
+  Future<void> refreshAfterSubscriptionChange() async {
+    await refreshSubscriptions(); // 구독 정보 새로고침
+
+    // 현재 선택된 태그가 더 이상 구독되지 않은 경우 'all'로 리셋
+    if (selectedTagFilter.value != 'all' &&
+        !subscribedBoards.contains(selectedTagFilter.value)) {
+      selectedTagFilter.value = 'all';
+    }
+
     resetPagination(); // 페이지네이션 리셋
     await fetchPosts(useCache: false, forceRefresh: true);
   }
@@ -388,5 +456,56 @@ class PostsController extends GetxController {
       print('Error fetching user subscriptions: $e');
       return [];
     }
+  }
+
+  // 검색 바 관련 메서드들
+  void clearSearch() {
+    searchController.clear();
+  }
+
+  void unfocusSearch() {
+    searchFocusNode.unfocus();
+  }
+
+  // URL 실행
+  Future<void> launchUrl(String url) async {
+    await UrlLauncherUtils.launchUrl(url);
+  }
+
+  // 날짜 포맷팅 함수
+  String formatDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return '';
+
+    try {
+      final date = DateTime.parse(dateStr);
+      final now = DateTime.now();
+      final difference = now.difference(date);
+
+      // 오늘 날짜인 경우 시간만 표시
+      if (difference.inDays == 0) {
+        return DateFormat('HH:mm').format(date);
+      }
+      // 올해인 경우 월-일만 표시
+      else if (date.year == now.year) {
+        return DateFormat('MM-dd').format(date);
+      }
+      // 다른 연도인 경우 연-월-일 표시
+      else {
+        return DateFormat('yyyy-MM-dd').format(date);
+      }
+    } catch (e) {
+      return dateStr;
+    }
+  }
+
+  // 스크롤 이벤트 처리
+  bool handleScrollNotification(ScrollNotification notification) {
+    if (notification is ScrollEndNotification) {
+      if (notification.metrics.pixels >=
+          notification.metrics.maxScrollExtent * 0.9) {
+        loadMorePosts();
+      }
+    }
+    return false;
   }
 }

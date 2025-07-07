@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import '../../../data/services/supabase_service.dart';
+import '../../home/controllers/home_controller.dart';
 
 class SubscriptionController extends GetxController {
   final SupabaseService _supabaseProvider = Get.find<SupabaseService>();
@@ -266,6 +267,19 @@ class SubscriptionController extends GetxController {
     } catch (err) {
       print('구독 업데이트 실패: $err');
       return false;
+    }
+  }
+
+  // 구독 저장 및 HomeController와의 통신을 포함한 완전한 저장 프로세스
+  Future<void> saveChangesAndNotifyHome() async {
+    final success = await saveAllSubscriptions();
+
+    if (success) {
+      // 홈 컨트롤러의 handleSubscriptionChange 메서드 호출
+      if (Get.isRegistered<HomeController>()) {
+        final homeController = Get.find<HomeController>();
+        await homeController.handleSubscriptionChange();
+      }
     }
   }
 

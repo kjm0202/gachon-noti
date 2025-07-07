@@ -174,14 +174,42 @@ class HomeController extends GetxController {
 
   Future<void> handleSubscriptionChange() async {
     // 구독 설정 변경 시 게시물 새로고침 처리
-    final postsController = Get.find<PostsController>();
-    await postsController.forceRefresh();
+    if (Get.isRegistered<PostsController>()) {
+      final postsController = Get.find<PostsController>();
+      await postsController.refreshAfterSubscriptionChange();
+    }
 
     // 게시물 탭으로 변경
     // currentIndex.value = 1;
 
     // 구독 변경 이벤트 발생
     subscriptionChanged.value = true;
+  }
+
+  // 업데이트 스낵바 표시
+  void showUpdateSnackbar(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('새로운 버전이 출시되었습니다.'),
+        action: SnackBarAction(
+          label: '업데이트',
+          onPressed: () {
+            if (kIsWeb) {
+              WebUtils.reloadPage();
+            } else {
+              // 네이티브에서는 앱스토어로 이동하거나 다른 업데이트 로직 구현
+              Get.snackbar(
+                '업데이트',
+                '앱스토어에서 업데이트를 확인해주세요.',
+                duration: const Duration(seconds: 3),
+              );
+            }
+          },
+        ),
+        duration: const Duration(days: 365),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   Future<bool> logout() async {
