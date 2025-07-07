@@ -4,10 +4,21 @@ import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../data/services/admob_service.dart';
 
+// 광고 타입 enum
+enum AdMobBannerType {
+  home, // 홈 화면용
+  settings, // 설정 화면용
+}
+
 // 참고: 웹과 모바일에서 다른 광고를 표시하려면 UnifiedBannerWidget을 사용해야 함
 // 이 위젯은 모바일 전용 AdMob 배너임
 class AdMobBannerWidget extends StatelessWidget {
-  const AdMobBannerWidget({super.key});
+  final AdMobBannerType bannerType;
+
+  const AdMobBannerWidget({
+    super.key,
+    this.bannerType = AdMobBannerType.home,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,15 +35,31 @@ class AdMobBannerWidget extends StatelessWidget {
     final adMobService = Get.find<AdMobService>();
 
     return Obx(() {
-      if (!adMobService.isBannerAdReady || adMobService.bannerAd == null) {
+      // 배너 타입에 따라 다른 광고 사용
+      final bool isAdReady;
+      final BannerAd? bannerAd;
+
+      switch (bannerType) {
+        case AdMobBannerType.settings:
+          isAdReady = adMobService.isSettingsBannerAdReady;
+          bannerAd = adMobService.settingsBannerAd;
+          break;
+        case AdMobBannerType.home:
+        default:
+          isAdReady = adMobService.isBannerAdReady;
+          bannerAd = adMobService.bannerAd;
+          break;
+      }
+
+      if (!isAdReady || bannerAd == null) {
         // 광고가 로드되지 않았을 때는 빈 컨테이너 반환
         return const SizedBox.shrink();
       }
 
       return Container(
         alignment: Alignment.center,
-        width: adMobService.bannerAd!.size.width.toDouble(),
-        height: adMobService.bannerAd!.size.height.toDouble(),
+        width: bannerAd.size.width.toDouble(),
+        height: bannerAd.size.height.toDouble(),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainer,
           border: Border(
@@ -46,7 +73,7 @@ class AdMobBannerWidget extends StatelessWidget {
             ),
           ),
         ),
-        child: AdWidget(ad: adMobService.bannerAd!),
+        child: AdWidget(ad: bannerAd),
       );
     });
   }

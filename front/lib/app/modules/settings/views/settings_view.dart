@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import '../controllers/settings_controller.dart';
+import '../../../utils/unified_banner_widget.dart';
+import '../../../utils/admob_banner_widget.dart';
 
 class SettingsView extends GetView<SettingsController> {
   const SettingsView({super.key});
@@ -109,7 +110,7 @@ class SettingsView extends GetView<SettingsController> {
                   ListTile(
                     leading: const Icon(Icons.logout),
                     title: const Text('로그아웃'),
-                    onTap: _showLogoutDialog,
+                    onTap: controller.showLogoutDialog,
                   ),
                   const Divider(height: 1),
                   ListTile(
@@ -118,7 +119,7 @@ class SettingsView extends GetView<SettingsController> {
                       '회원탈퇴',
                       style: TextStyle(color: Colors.red[700]),
                     ),
-                    onTap: _showDeleteAccountDialog,
+                    onTap: controller.showDeleteAccountDialog,
                   ),
                 ],
               ),
@@ -126,78 +127,9 @@ class SettingsView extends GetView<SettingsController> {
           ],
         ),
       ),
-    );
-  }
-
-  void _showLogoutDialog() {
-    Get.dialog(
-      PopScope(
-        canPop: !controller.isLoggingOut.value,
-        child: Obx(() => AlertDialog(
-              title: const Text('로그아웃'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (controller.isLoggingOut.value)
-                    const Column(
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 16),
-                        Text('로그아웃 중...'),
-                      ],
-                    )
-                  else
-                    const Text('로그아웃 하시겠습니까?'),
-                ],
-              ),
-              actions: [
-                if (!controller.isLoggingOut.value) ...[
-                  TextButton(
-                    onPressed: () => Get.back(),
-                    child: const Text('취소'),
-                  ),
-                  TextButton(
-                    onPressed: () async {
-                      await controller.logout();
-                    },
-                    child: const Text('확인'),
-                  ),
-                ],
-              ],
-            )),
-      ),
-      barrierDismissible: false,
-    );
-  }
-
-  void _showDeleteAccountDialog() {
-    Get.dialog(
-      AlertDialog(
-        title: Text(
-          '회원탈퇴',
-          style: TextStyle(color: Colors.red[700]),
-        ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.warning_amber_outlined,
-              color: Colors.orange,
-              size: 48,
-            ),
-            SizedBox(height: 16),
-            Text(
-              '회원탈퇴 기능은 현재 준비 중입니다.\n추후 업데이트에서 제공될 예정입니다.',
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('확인'),
-          ),
-        ],
+      bottomNavigationBar: const UnifiedBannerWidget(
+        adfitAdUnit: 'DAN-U8bbT9CwMuyswC2r',
+        bannerType: AdMobBannerType.settings,
       ),
     );
   }

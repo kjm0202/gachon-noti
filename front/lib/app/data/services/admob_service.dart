@@ -9,12 +9,19 @@ class AdMobService extends GetxController {
   BannerAd? _bannerAd;
   final RxBool _isBannerAdReady = false.obs;
 
+  // 설정 화면용 배너 광고
+  BannerAd? _settingsBannerAd;
+  final RxBool _isSettingsBannerAdReady = false.obs;
+
   // 중간 직사각형 배너 광고 (300x250)
   BannerAd? _mediumRectangleBannerAd;
   final RxBool _isMediumRectangleBannerAdReady = false.obs;
 
   bool get isBannerAdReady => _isBannerAdReady.value;
   BannerAd? get bannerAd => _bannerAd;
+
+  bool get isSettingsBannerAdReady => _isSettingsBannerAdReady.value;
+  BannerAd? get settingsBannerAd => _settingsBannerAd;
 
   bool get isMediumRectangleBannerAdReady =>
       _isMediumRectangleBannerAdReady.value;
@@ -50,6 +57,7 @@ class AdMobService extends GetxController {
   @override
   void onClose() {
     _bannerAd?.dispose();
+    _settingsBannerAd?.dispose();
     _mediumRectangleBannerAd?.dispose();
     super.onClose();
   }
@@ -64,6 +72,7 @@ class AdMobService extends GetxController {
     try {
       await MobileAds.instance.initialize();
       _loadBannerAd();
+      _loadSettingsBannerAd(); // 설정 화면용 배너 광고 로드
       _loadMediumRectangleBannerAd(); // 앱 시작 시 중간 직사각형 광고도 미리 로드
     } catch (e) {
       debugPrint('AdMob 초기화 실패: $e');
@@ -107,6 +116,45 @@ class AdMobService extends GetxController {
     _bannerAd?.dispose();
     _isBannerAdReady.value = false;
     _loadBannerAd();
+  }
+
+  // 설정 화면용 배너 광고 로드
+  void _loadSettingsBannerAd() {
+    try {
+      _settingsBannerAd = BannerAd(
+        adUnitId: _bannerAdUnitId,
+        request: const AdRequest(),
+        size: AdSize.banner,
+        listener: BannerAdListener(
+          onAdLoaded: (ad) {
+            debugPrint('설정 화면 배너 광고 로드 성공');
+            _isSettingsBannerAdReady.value = true;
+          },
+          onAdFailedToLoad: (ad, err) {
+            debugPrint('설정 화면 배너 광고 로드 실패: ${err.message}');
+            _isSettingsBannerAdReady.value = false;
+            ad.dispose();
+          },
+          onAdOpened: (ad) {
+            debugPrint('설정 화면 배너 광고 클릭됨');
+          },
+          onAdClosed: (ad) {
+            debugPrint('설정 화면 배너 광고 닫힘');
+          },
+        ),
+      );
+
+      _settingsBannerAd?.load();
+    } catch (e) {
+      debugPrint('설정 화면 배너 광고 생성 실패: $e');
+    }
+  }
+
+  // 설정 화면 배너 광고 재로드
+  void reloadSettingsBannerAd() {
+    _settingsBannerAd?.dispose();
+    _isSettingsBannerAdReady.value = false;
+    _loadSettingsBannerAd();
   }
 
   // 중간 직사각형 배너 광고 로드 (300x250)

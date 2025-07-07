@@ -8,12 +8,14 @@ class UnifiedBannerWidget extends StatelessWidget {
   final String? adfitAdUnit; // Kakao Adfit 광고 단위 ID (웹용)
   final double width;
   final double height;
+  final AdMobBannerType bannerType; // AdMob 배너 타입 (모바일용)
 
   const UnifiedBannerWidget({
     super.key,
     this.adfitAdUnit,
     this.width = 320,
     this.height = 50,
+    this.bannerType = AdMobBannerType.home,
   });
 
   @override
@@ -39,7 +41,7 @@ class UnifiedBannerWidget extends StatelessWidget {
     } else {
       print('UnifiedBannerWidget: 모바일에서 AdMobBannerWidget 사용');
       // 모바일 플랫폼에서는 AdMob 사용
-      return const AdMobBannerWidget();
+      return AdMobBannerWidget(bannerType: bannerType);
     }
   }
 }
