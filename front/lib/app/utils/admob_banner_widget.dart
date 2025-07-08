@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../data/services/admob_service.dart';
+import '../data/services/adfree_service.dart';
 
 // 광고 타입 enum
 enum AdMobBannerType {
@@ -32,6 +33,27 @@ class AdMobBannerWidget extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    // 광고 제거 상태를 실시간으로 감지
+    if (Get.isRegistered<AdFreeService>()) {
+      return Obx(() {
+        final adFreeService = Get.find<AdFreeService>();
+        print(
+            'AdMobBannerWidget: shouldShowAds = ${adFreeService.shouldShowAds()}');
+
+        if (!adFreeService.shouldShowAds()) {
+          print('AdMobBannerWidget: 광고 제거 상태 - 배너 숨김');
+          return const SizedBox.shrink();
+        }
+
+        return _buildBannerAd(context);
+      });
+    }
+
+    // AdFreeService가 등록되지 않은 경우 기본으로 광고 표시
+    return _buildBannerAd(context);
+  }
+
+  Widget _buildBannerAd(BuildContext context) {
     final adMobService = Get.find<AdMobService>();
 
     return Obx(() {
@@ -95,6 +117,27 @@ class AdMobMediumRectangleBannerWidget extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    // 광고 제거 상태를 실시간으로 감지
+    if (Get.isRegistered<AdFreeService>()) {
+      return Obx(() {
+        final adFreeService = Get.find<AdFreeService>();
+        print(
+            'AdMobMediumRectangleBannerWidget: shouldShowAds = ${adFreeService.shouldShowAds()}');
+
+        if (!adFreeService.shouldShowAds()) {
+          print('AdMobMediumRectangleBannerWidget: 광고 제거 상태 - 배너 숨김');
+          return const SizedBox.shrink();
+        }
+
+        return _buildMediumRectangleBannerAd(context);
+      });
+    }
+
+    // AdFreeService가 등록되지 않은 경우 기본으로 광고 표시
+    return _buildMediumRectangleBannerAd(context);
+  }
+
+  Widget _buildMediumRectangleBannerAd(BuildContext context) {
     final adMobService = Get.find<AdMobService>();
 
     return Obx(() {

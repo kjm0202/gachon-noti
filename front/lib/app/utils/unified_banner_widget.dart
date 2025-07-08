@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'admob_banner_widget.dart';
 import 'adfit_banner_widget_stub.dart'
     if (dart.library.js_interop) 'adfit_banner_widget.dart';
+import '../data/services/adfree_service.dart';
 
 class UnifiedBannerWidget extends StatelessWidget {
   final String? adfitAdUnit; // Kakao Adfit 광고 단위 ID (웹용)
@@ -23,6 +25,27 @@ class UnifiedBannerWidget extends StatelessWidget {
     print('UnifiedBannerWidget: kIsWeb = $kIsWeb');
     print('UnifiedBannerWidget: adfitAdUnit = $adfitAdUnit');
 
+    // 광고 제거 상태를 실시간으로 감지
+    if (Get.isRegistered<AdFreeService>()) {
+      return Obx(() {
+        final adFreeService = Get.find<AdFreeService>();
+        print(
+            'UnifiedBannerWidget: shouldShowAds = ${adFreeService.shouldShowAds()}');
+
+        if (!adFreeService.shouldShowAds()) {
+          print('UnifiedBannerWidget: 광고 제거 상태 - 배너 숨김');
+          return const SizedBox.shrink();
+        }
+
+        return _buildBannerWidget();
+      });
+    }
+
+    // AdFreeService가 등록되지 않은 경우 기본으로 광고 표시
+    return _buildBannerWidget();
+  }
+
+  Widget _buildBannerWidget() {
     // 웹 플랫폼에서는 Kakao Adfit 사용
     if (kIsWeb) {
       // Adfit 광고 단위 ID가 제공된 경우에만 광고 표시

@@ -7,4 +7,12 @@ class API {
   // Firebase 설정 (FCM용)
   static const String vapidKey =
       'BDqgF19sodFma3fvtewXSNrhyr2a8G1n8E5rh8bHSvuaCq_etquIzfoKYQyauH6OjyLeYteU-BoXJz_io72BTgo';
+
+  // Qonversion 설정
+  static const String qonversionProjectKey =
+      'zqYcIN4ApJ8VbplXXVbosTfrGxF3eKSZ'; // TODO: 실제 프로젝트 키로 교체
+  static const String removeAdsProductId = 'remove_ads'; // 1회성 광고 제거 제품 ID
+  static const String adFreeEntitlementId = 'remove_ads'; // 광고 제거 권한 ID
+  static const String paywallContextKey =
+      'remove_ads_paywall'; // No-Code paywall 컨텍스트 키
 }

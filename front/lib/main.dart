@@ -14,6 +14,7 @@ import 'app/routes/app_pages.dart';
 import 'app/bindings/initial_binding.dart';
 import 'app/data/services/auth_service.dart';
 import 'app/data/services/supabase_service.dart';
+import 'app/data/services/qonversion_service.dart';
 import 'app/utils/notification_utils.dart';
 import 'theme.dart';
 import 'app/modules/pwa_install_view.dart';
@@ -122,5 +123,11 @@ class MyApp extends StatelessWidget {
     final authProvider = AuthService();
     await authProvider.init();
     Get.put(authProvider);
+
+    // Qonversion 서비스 초기화 (모바일 전용)
+    if (!kIsWeb) {
+      final qonversionService = QonversionService();
+      Get.put(qonversionService, permanent: true);
+    }
   }
 }

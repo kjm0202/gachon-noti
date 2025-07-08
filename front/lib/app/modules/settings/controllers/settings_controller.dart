@@ -4,16 +4,22 @@ import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../data/services/auth_service.dart';
+import '../../../data/services/adfree_service.dart';
 import '../../../utils/platform_utils.dart';
 
 class SettingsController extends GetxController {
   final AuthService _authService = Get.find<AuthService>();
+  final AdFreeService _adFreeService = Get.find<AdFreeService>();
 
   // 로그아웃 상태
   final RxBool isLoggingOut = false.obs;
 
   // 앱 버전 정보
   final RxString appVersion = '1.0.0'.obs;
+
+  // 구매 관련 상태
+  final RxBool isPurchasing = false.obs;
+  final RxBool isRestoring = false.obs;
 
   @override
   void onInit() {
@@ -57,6 +63,33 @@ class SettingsController extends GetxController {
         Uri.parse('https://gachon-noti-privacy.ven0m.kr/'),
         mode: LaunchMode.externalApplication,
       );
+    }
+  }
+
+  // 광고 제거 상태 확인
+  bool get isAdFree => _adFreeService.isAdFree;
+
+  // 광고 제거 구매
+  Future<void> purchaseRemoveAds() async {
+    if (isPurchasing.value) return;
+
+    try {
+      isPurchasing.value = true;
+      await _adFreeService.purchaseRemoveAds();
+    } finally {
+      isPurchasing.value = false;
+    }
+  }
+
+  // 구매 복원
+  Future<void> restorePurchases() async {
+    if (isRestoring.value) return;
+
+    try {
+      isRestoring.value = true;
+      await _adFreeService.restorePurchases();
+    } finally {
+      isRestoring.value = false;
     }
   }
 

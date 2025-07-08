@@ -5,6 +5,7 @@ import '../modules/subscription/controllers/subscription_controller.dart';
 import '../modules/home/controllers/home_controller.dart';
 import '../modules/login/controllers/login_controller.dart';
 import '../data/services/admob_service.dart';
+import '../data/services/adfree_service.dart';
 
 class InitialBinding extends Bindings {
   @override
@@ -14,6 +15,10 @@ class InitialBinding extends Bindings {
     if (!kIsWeb) {
       Get.put<AdMobService>(AdMobService(), permanent: true);
     }
+
+    // 광고 제거 서비스 등록
+    Get.put<AdFreeService>(AdFreeService(), permanent: true);
+
     // 필요한 컨트롤러들 등록
     Get.lazyPut<HomeController>(() => HomeController(), fenix: true);
     Get.lazyPut<LoginController>(() => LoginController(), fenix: true);
