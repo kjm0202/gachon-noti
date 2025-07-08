@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "1006219923383-65qunqhsmpnvim54mu3a09t3nj7kr25t.apps.googleusercontent.com",
+          "client_id": "1006219923383-4i5bm67lolnqfseh3jirdno26nc18s2k.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.kjm.gachon_noti",
-            "certificate_hash": "7196ad8ba69e49a5c8ec97956539c3696410dc5e"
+            "certificate_hash": "11ba0f50ed07659eb8075b13c0188df6fd857a3a"
           }
         },
         {
