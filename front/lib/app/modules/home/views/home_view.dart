@@ -106,55 +106,46 @@ class HomeView extends GetView<HomeController> {
                 ],
               )),
         ),
-        bottomNavigationBar: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 배너 광고 위젯 (네비게이션 바 위쪽)
-            const UnifiedBannerWidget(
-              adfitAdUnit: 'DAN-U8bbT9CwMuyswC2r',
-            ),
-            // 네비게이션 바 (가로형 레이아웃으로 두께 감소)
-            Obx(() => Container(
-                  height: 60, // 높이를 명시적으로 설정하여 두께 조절
-                  decoration: BoxDecoration(
-                    color: Theme.of(context)
-                            .bottomNavigationBarTheme
-                            .backgroundColor ??
-                        Theme.of(context).colorScheme.surface,
-                    border: Border(
-                      top: BorderSide(
-                        color: Theme.of(context).dividerColor.withOpacity(0.3),
-                        width: 0.5,
+        bottomNavigationBar: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 배너 광고 위젯 (네비게이션 바 위쪽)
+              const UnifiedBannerWidget(
+                adfitAdUnit: 'DAN-U8bbT9CwMuyswC2r',
+              ),
+              // 네비게이션 바 (가로형 레이아웃으로 두께 감소)
+              Obx(() => Container(
+                    height: 60, // 높이를 명시적으로 설정하여 두께 조절
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                              .bottomNavigationBarTheme
+                              .backgroundColor ??
+                          Theme.of(context).colorScheme.surface,
+                      border: Border(
+                        top: BorderSide(
+                          color:
+                              Theme.of(context).dividerColor.withOpacity(0.3),
+                          width: 0.5,
+                        ),
                       ),
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () => controller.changeTab(0),
-                            child: Container(
-                              height: 60,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.notifications,
-                                    color: controller.currentIndex.value == 0
-                                        ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '구독 설정',
-                                    style: TextStyle(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () => controller.changeTab(0),
+                              child: Container(
+                                height: 60,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.notifications,
                                       color: controller.currentIndex.value == 0
                                           ? Theme.of(context)
                                               .colorScheme
@@ -162,50 +153,54 @@ class HomeView extends GetView<HomeController> {
                                           : Theme.of(context)
                                               .colorScheme
                                               .onSurfaceVariant,
-                                      fontSize: 14,
-                                      fontWeight:
-                                          controller.currentIndex.value == 0
-                                              ? FontWeight.w600
-                                              : FontWeight.normal,
+                                      size: 20,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '구독 설정',
+                                      style: TextStyle(
+                                        color:
+                                            controller.currentIndex.value == 0
+                                                ? Theme.of(context)
+                                                    .colorScheme
+                                                    .primary
+                                                : Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
+                                        fontSize: 14,
+                                        fontWeight:
+                                            controller.currentIndex.value == 0
+                                                ? FontWeight.w600
+                                                : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                      // 구분선
-                      Container(
-                        width: 0.5,
-                        height: 32,
-                        color: Theme.of(context).dividerColor.withOpacity(0.3),
-                      ),
-                      Expanded(
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () => controller.changeTab(1),
-                            child: Container(
-                              height: 60,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.article,
-                                    color: controller.currentIndex.value == 1
-                                        ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '전체 게시물',
-                                    style: TextStyle(
+                        // 구분선
+                        Container(
+                          width: 0.5,
+                          height: 32,
+                          color:
+                              Theme.of(context).dividerColor.withOpacity(0.3),
+                        ),
+                        Expanded(
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () => controller.changeTab(1),
+                              child: Container(
+                                height: 60,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.article,
                                       color: controller.currentIndex.value == 1
                                           ? Theme.of(context)
                                               .colorScheme
@@ -213,23 +208,38 @@ class HomeView extends GetView<HomeController> {
                                           : Theme.of(context)
                                               .colorScheme
                                               .onSurfaceVariant,
-                                      fontSize: 14,
-                                      fontWeight:
-                                          controller.currentIndex.value == 1
-                                              ? FontWeight.w600
-                                              : FontWeight.normal,
+                                      size: 20,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '전체 게시물',
+                                      style: TextStyle(
+                                        color:
+                                            controller.currentIndex.value == 1
+                                                ? Theme.of(context)
+                                                    .colorScheme
+                                                    .primary
+                                                : Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
+                                        fontSize: 14,
+                                        fontWeight:
+                                            controller.currentIndex.value == 1
+                                                ? FontWeight.w600
+                                                : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                )),
-          ],
+                      ],
+                    ),
+                  )),
+            ],
+          ),
         ),
       ),
     );
