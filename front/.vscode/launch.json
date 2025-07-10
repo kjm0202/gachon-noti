@@ -10,7 +10,8 @@
             "request": "launch",
             "type": "dart",
             "args": [
-                "--web-renderer=html"
+                "--web-renderer=html",
+                "--web-port=8989"
             ]
         },
         {
@@ -19,7 +20,8 @@
             "type": "dart",
             "flutterMode": "profile",
             "args": [
-                "--web-renderer=html"
+                "--web-renderer=html",
+                "--web-port=8989"
             ]
         },
         {
@@ -28,7 +30,8 @@
             "type": "dart",
             "flutterMode": "release",
             "args": [
-                "--web-renderer=html"
+                "--web-renderer=html",
+                "--web-port=8989"
             ]
         }
     ]
