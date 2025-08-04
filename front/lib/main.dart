@@ -11,6 +11,7 @@ import 'firebase_options.dart';
 import 'app/utils/const.dart';
 import 'app/utils/pwa_utils.dart';
 import 'app/routes/app_pages.dart';
+import 'app/routes/app_routes.dart';
 import 'app/bindings/initial_binding.dart';
 import 'app/data/services/auth_service.dart';
 import 'app/data/services/supabase_service.dart';
@@ -80,11 +81,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final materialTheme = MaterialTheme(Theme.of(context).textTheme);
 
-    return FutureBuilder(
+    return FutureBuilder<String>(
       // 서비스 제공자들이 초기화 완료되길 기다림
       future: _initializeServices(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
+        if (snapshot.connectionState == ConnectionState.done &&
+            snapshot.hasData) {
           return GetMaterialApp(
             title: '가천 알림이',
             debugShowCheckedModeBanner: false,
@@ -92,7 +94,7 @@ class MyApp extends StatelessWidget {
             darkTheme: materialTheme.dark(),
             themeMode: ThemeMode.system,
             initialBinding: InitialBinding(),
-            initialRoute: AppPages.INITIAL,
+            initialRoute: snapshot.data!, // 동적으로 결정된 초기 경로 사용
             getPages: AppPages.routes,
             defaultTransition: Transition.fade,
           );
@@ -115,7 +117,7 @@ class MyApp extends StatelessWidget {
   }
 
   // 서비스 초기화를 위한 메소드
-  Future<void> _initializeServices() async {
+  Future<String> _initializeServices() async {
     final supabaseProvider = SupabaseService();
     await supabaseProvider.init();
     Get.put(supabaseProvider);
@@ -129,5 +131,9 @@ class MyApp extends StatelessWidget {
       final qonversionService = QonversionService();
       Get.put(qonversionService, permanent: true);
     }
+
+    // 로그인 상태를 확인하고 적절한 초기 경로 반환
+    final isLoggedIn = await authProvider.checkCurrentSession();
+    return isLoggedIn ? Routes.HOME : Routes.LOGIN;
   }
 }

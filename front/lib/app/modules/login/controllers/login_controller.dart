@@ -9,22 +9,8 @@ class LoginController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // 앱 시작 시 세션 확인
-    checkExistingSession();
-  }
-
-  Future<void> checkExistingSession() async {
-    isLoading.value = true;
-    try {
-      final isLoggedIn = await _authProvider.checkCurrentSession();
-      if (isLoggedIn) {
-        Get.offAllNamed(Routes.HOME);
-      }
-    } catch (e) {
-      print('세션 확인 오류: $e');
-    } finally {
-      isLoading.value = false;
-    }
+    // 초기화 시 로딩 상태 해제
+    isLoading.value = false;
   }
 
   Future<void> loginWithGoogle() async {
