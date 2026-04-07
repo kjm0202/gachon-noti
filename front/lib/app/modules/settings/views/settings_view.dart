@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/settings_controller.dart';
-import '../../../utils/unified_banner_widget.dart';
+
 import '../../../utils/admob_banner_widget.dart';
 
 class SettingsView extends GetView<SettingsController> {
@@ -204,8 +204,7 @@ class SettingsView extends GetView<SettingsController> {
         ),
       ),
       bottomNavigationBar: SafeArea(
-        child: const UnifiedBannerWidget(
-          // adfitAdUnit: 'DAN-U8bbT9CwMuyswC2r', // 중복 방지를 위해 제거
+        child: const AdMobBannerWidget(
           bannerType: AdMobBannerType.settings,
         ),
       ),

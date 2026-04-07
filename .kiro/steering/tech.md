@@ -54,7 +54,7 @@ flutter run
 
 # Build for production
 flutter build apk --release
-flutter build web --release
+flutter build ipa --release
 
 # Generate launcher icons
 flutter pub run flutter_launcher_icons

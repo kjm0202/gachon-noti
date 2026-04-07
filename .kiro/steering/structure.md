@@ -64,7 +64,6 @@ modules/[feature]/
 ## Platform-Specific
 - **front/android/**: Android-specific configurations
 - **front/ios/**: iOS-specific configurations  
-- **front/web/**: Web/PWA configurations
 - **front/assets/**: App icons and static assets
 
 ## Development Files

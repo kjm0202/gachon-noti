@@ -1,9 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
-import 'platform_utils.dart';
-
 /// URL 실행 관련 공통 유틸리티 함수들
 class UrlLauncherUtils {
   /// 플랫폼에 맞는 방식으로 URL 오픈
@@ -11,14 +8,8 @@ class UrlLauncherUtils {
     try {
       debugPrint('URL 열기 시도: $url');
 
-      if (kIsWeb) {
-        // 웹에서는 WebUtils를 통해 URL 열기
-        WebUtils.openUrl(url, '_blank');
-        debugPrint('웹에서 URL 열기 완료');
-      } else {
-        // 네이티브에서는 url_launcher 사용 (Chrome Custom Tab 우선)
-        await _launchUrlNative(url);
-      }
+      // 네이티브에서는 url_launcher 사용 (Chrome Custom Tab 우선)
+      await _launchUrlNative(url);
     } catch (e) {
       print('URL 열기 실패: $e');
       _showErrorDialog(url);

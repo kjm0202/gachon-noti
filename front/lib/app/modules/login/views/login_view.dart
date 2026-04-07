@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/login_controller.dart';
-import '../../../utils/platform_utils.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class LoginView extends GetView<LoginController> {
   const LoginView({super.key});
@@ -72,8 +72,10 @@ class LoginView extends GetView<LoginController> {
                   )),
               const SizedBox(height: 12),
               TextButton(
-                onPressed: () =>
-                    WebUtils.openUrl('https://gachon-noti-privacy.ven0m.kr/'),
+                onPressed: () => launchUrl(
+                  Uri.parse('https://gachon-noti-privacy.ven0m.kr/'),
+                  mode: LaunchMode.externalApplication,
+                ),
                 child: const Text(
                   '개인정보 처리방침',
                   style: TextStyle(

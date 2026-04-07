@@ -1,11 +1,11 @@
-import 'package:flutter/foundation.dart';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../data/services/adfree_service.dart';
-import '../../../utils/platform_utils.dart';
+
 
 class SettingsController extends GetxController {
   final AuthService _authService = Get.find<AuthService>();
@@ -55,15 +55,10 @@ class SettingsController extends GetxController {
 
   // 개인정보처리방침 열기
   void openPrivacyPolicy() {
-    if (kIsWeb) {
-      WebUtils.openUrl('https://gachon-noti-privacy.ven0m.kr/');
-    } else {
-      // 네이티브에서는 url_launcher 사용
-      launchUrl(
-        Uri.parse('https://gachon-noti-privacy.ven0m.kr/'),
-        mode: LaunchMode.externalApplication,
-      );
-    }
+    launchUrl(
+      Uri.parse('https://gachon-noti-privacy.ven0m.kr/'),
+      mode: LaunchMode.externalApplication,
+    );
   }
 
   // 광고 제거 상태 확인

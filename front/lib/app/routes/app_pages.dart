@@ -10,6 +10,8 @@ import '../modules/settings/bindings/settings_binding.dart';
 import '../modules/settings/views/settings_view.dart';
 import '../modules/subscription/bindings/subscription_binding.dart';
 import '../modules/subscription/views/subscription_view.dart';
+import '../modules/webview/bindings/webview_binding.dart';
+import '../modules/webview/views/webview_view.dart';
 import 'app_routes.dart';
 
 class AppPages {
@@ -40,6 +42,11 @@ class AppPages {
       name: Routes.SETTINGS,
       page: () => const SettingsView(),
       binding: SettingsBinding(),
+    ),
+    GetPage(
+      name: Routes.WEBVIEW,
+      page: () => const WebviewView(),
+      binding: WebviewBinding(),
     ),
   ];
 }

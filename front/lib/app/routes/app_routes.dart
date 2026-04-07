@@ -4,4 +4,5 @@ abstract class Routes {
   static const POSTS = '/posts';
   static const SUBSCRIPTION = '/subscription';
   static const SETTINGS = '/settings';
+  static const WEBVIEW = '/webview';
 }

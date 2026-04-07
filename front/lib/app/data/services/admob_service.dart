@@ -17,6 +17,10 @@ class AdMobService extends GetxController {
   BannerAd? _mediumRectangleBannerAd;
   final RxBool _isMediumRectangleBannerAdReady = false.obs;
 
+  // 웹뷰 화면용 배너 광고
+  BannerAd? _webviewBannerAd;
+  final RxBool _isWebviewBannerAdReady = false.obs;
+
   bool get isBannerAdReady => _isBannerAdReady.value;
   BannerAd? get bannerAd => _bannerAd;
 
@@ -26,6 +30,10 @@ class AdMobService extends GetxController {
   bool get isMediumRectangleBannerAdReady =>
       _isMediumRectangleBannerAdReady.value;
   BannerAd? get mediumRectangleBannerAd => _mediumRectangleBannerAd;
+
+  bool get isWebviewBannerAdReady => _isWebviewBannerAdReady.value;
+  BannerAd? get webviewBannerAd => _webviewBannerAd;
+
 
   // 광고 단위 ID
   static final String _bannerAdUnitId = kDebugMode
@@ -48,10 +56,7 @@ class AdMobService extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // 웹에서는 AdMob을 초기화하지 않음
-    if (!kIsWeb) {
-      _initializeMobileAds();
-    }
+    _initializeMobileAds();
   }
 
   @override
@@ -59,21 +64,18 @@ class AdMobService extends GetxController {
     _bannerAd?.dispose();
     _settingsBannerAd?.dispose();
     _mediumRectangleBannerAd?.dispose();
+    _webviewBannerAd?.dispose();
     super.onClose();
   }
 
-  // AdMob 초기화 (모바일 전용)
+  // AdMob 초기화
   Future<void> _initializeMobileAds() async {
-    if (kIsWeb) {
-      debugPrint('웹 환경에서는 AdMob을 사용할 수 없습니다.');
-      return;
-    }
-
     try {
       await MobileAds.instance.initialize();
       _loadBannerAd();
-      _loadSettingsBannerAd(); // 설정 화면용 배너 광고 로드
-      _loadMediumRectangleBannerAd(); // 앱 시작 시 중간 직사각형 광고도 미리 로드
+      _loadSettingsBannerAd();
+      _loadMediumRectangleBannerAd();
+      _loadWebviewBannerAd();
     } catch (e) {
       debugPrint('AdMob 초기화 실패: $e');
     }
@@ -199,5 +201,37 @@ class AdMobService extends GetxController {
     _mediumRectangleBannerAd?.dispose();
     _isMediumRectangleBannerAdReady.value = false;
     _loadMediumRectangleBannerAd();
+  }
+
+  // 웹뷰 화면용 배너 광고 로드
+  void _loadWebviewBannerAd() {
+    try {
+      _webviewBannerAd = BannerAd(
+        adUnitId: _bannerAdUnitId,
+        request: const AdRequest(),
+        size: AdSize.banner,
+        listener: BannerAdListener(
+          onAdLoaded: (ad) {
+            debugPrint('웹뷰 배너 광고 로드 성공');
+            _isWebviewBannerAdReady.value = true;
+          },
+          onAdFailedToLoad: (ad, err) {
+            debugPrint('웹뷰 배너 광고 로드 실패: ${err.message}');
+            _isWebviewBannerAdReady.value = false;
+            ad.dispose();
+          },
+        ),
+      );
+      _webviewBannerAd?.load();
+    } catch (e) {
+      debugPrint('웹뷰 배너 광고 생성 실패: $e');
+    }
+  }
+
+  // 웹뷰 배너 광고 재로드
+  void reloadWebviewBannerAd() {
+    _webviewBannerAd?.dispose();
+    _isWebviewBannerAdReady.value = false;
+    _loadWebviewBannerAd();
   }
 }

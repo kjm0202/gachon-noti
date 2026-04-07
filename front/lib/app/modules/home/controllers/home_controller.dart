@@ -2,15 +2,13 @@ import 'package:get/get.dart';
 import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
+
 
 import '../../posts/controllers/posts_controller.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../routes/app_routes.dart';
 import '../../../data/services/firebase_service.dart';
 import '../../../utils/version_checker.dart';
-import '../../../utils/platform_utils.dart';
-import '../../../utils/url_launcher_utils.dart';
 
 class HomeController extends GetxController {
   final AuthService _authProvider = Get.find<AuthService>();
@@ -55,13 +53,13 @@ class HomeController extends GetxController {
 
   // 업데이트 확인 메서드
   Future<void> _checkForUpdates() async {
-    if (kIsWeb) {
-      try {
-        final needsUpdate = await VersionChecker.needsUpdate();
-        updateAvailable.value = needsUpdate;
-      } catch (e) {
-        print('업데이트 확인 중 오류 발생: $e');
-      }
+    // 모바일 환경이므로 VersionChecker.needsUpdate()를 바로 호출하거나, 일단 유지합니다.
+    // kIsWeb 조건이 있었으나 이제 항상 실행합니다.
+    try {
+      final needsUpdate = await VersionChecker.needsUpdate();
+      updateAvailable.value = needsUpdate;
+    } catch (e) {
+      print('업데이트 확인 중 오류 발생: $e');
     }
   }
 
@@ -75,9 +73,7 @@ class HomeController extends GetxController {
     Get.dialog(
       AlertDialog(
         title: const Text('알림 권한 요청'),
-        content: Text(kIsWeb
-            ? '\'확인\' 버튼을 누른 뒤 나오는 팝업에서 알림 권한을 허용해주세요.'
-            : '새로운 공지사항 알림을 받으려면 알림 권한을 허용해주세요.'),
+        content: const Text('새로운 공지사항 알림을 받으려면 알림 권한을 허용해주세요.'),
         actions: [
           TextButton(
             onPressed: () {
@@ -92,25 +88,13 @@ class HomeController extends GetxController {
   }
 
   Future<void> _requestNotificationPermission() async {
-    if (kIsWeb) {
-      // 웹에서는 WebUtils를 통해 알림 권한 요청
-      final status = await WebUtils.requestNotificationPermission();
-
-      // 권한 상태 업데이트
-      if (status == 'granted') {
-        notificationPermission.value = AuthorizationStatus.authorized;
-      } else if (status == 'denied') {
-        notificationPermission.value = AuthorizationStatus.denied;
-      }
-    } else {
-      // 네이티브에서는 FCM이 직접 권한 처리
-      final settings = await FirebaseMessaging.instance.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-      notificationPermission.value = settings.authorizationStatus;
-    }
+    // 네이티브에서는 FCM이 직접 권한 처리
+    final settings = await FirebaseMessaging.instance.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+    notificationPermission.value = settings.authorizationStatus;
 
     // 권한을 얻었다면 FCM 초기화
     if (notificationPermission.value == AuthorizationStatus.authorized) {
@@ -136,18 +120,12 @@ class HomeController extends GetxController {
     if (data.isNotEmpty) {
       final String postLink = data['postLink'] ?? '';
       final String title = '[${data['boardName'] ?? '알림'}] 새 공지';
-      final String body = data['title'] ?? '새로운 공지사항이 있습니다.';
 
       print("URL 설정: $postLink");
 
-      if (kIsWeb) {
-        // 웹에서는 WebUtils를 통해 알림 표시
-        WebUtils.showWebNotification(title, body, postLink);
-      } else {
-        // 네이티브에서는 FirebaseProvider에서 로컬 알림으로 처리
-        // 여기서는 추가 처리가 필요한 경우에만 snackbar 표시
-        print('네이티브 앱에서 포그라운드 알림 수신: $title');
-      }
+      // 네이티브에서는 FirebaseProvider에서 로컬 알림으로 처리
+      // 여기서는 추가 처리가 필요한 경우에만 snackbar 표시
+      print('네이티브 앱에서 포그라운드 알림 수신: $title');
     }
   }
 
@@ -156,16 +134,9 @@ class HomeController extends GetxController {
     final data = message.data;
     final String? postLink = data['postLink'];
 
-    // 알림을 통해 특정 게시판이나 게시글로 이동
-    currentIndex.value = 1; // 전체 게시물 탭으로 전환
-
     if (postLink != null && postLink.isNotEmpty) {
-      _launchUrl(postLink);
+      Get.toNamed(Routes.WEBVIEW, arguments: postLink);
     }
-  }
-
-  Future<void> _launchUrl(String url) async {
-    await UrlLauncherUtils.launchUrl(url);
   }
 
   void changeTab(int index) {
@@ -194,16 +165,12 @@ class HomeController extends GetxController {
         action: SnackBarAction(
           label: '업데이트',
           onPressed: () {
-            if (kIsWeb) {
-              WebUtils.reloadPage();
-            } else {
-              // 네이티브에서는 앱스토어로 이동하거나 다른 업데이트 로직 구현
-              Get.snackbar(
-                '업데이트',
-                '앱스토어에서 업데이트를 확인해주세요.',
-                duration: const Duration(seconds: 3),
-              );
-            }
+            // 네이티브에서는 앱스토어로 이동하거나 다른 업데이트 로직 구현
+            Get.snackbar(
+              '업데이트',
+              '앱스토어에서 업데이트를 확인해주세요.',
+              duration: const Duration(seconds: 3),
+            );
           },
         ),
         duration: const Duration(days: 365),

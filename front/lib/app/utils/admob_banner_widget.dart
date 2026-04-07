@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
+
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../data/services/admob_service.dart';
@@ -23,10 +23,7 @@ class AdMobBannerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 웹에서는 광고를 표시하지 않음
-    if (kIsWeb) {
-      return const SizedBox.shrink();
-    }
+
 
     // AdMobService가 등록되어 있는지 확인
     if (!Get.isRegistered<AdMobService>()) {
@@ -107,10 +104,7 @@ class AdMobMediumRectangleBannerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 웹에서는 광고를 표시하지 않음
-    if (kIsWeb) {
-      return const SizedBox.shrink();
-    }
+
 
     // AdMobService가 등록되어 있는지 확인
     if (!Get.isRegistered<AdMobService>()) {

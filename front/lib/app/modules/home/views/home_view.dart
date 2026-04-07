@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:gachon_noti_front/app/utils/unified_banner_widget.dart';
+
 import 'package:get/get.dart';
-import 'package:flutter/foundation.dart';
+
 import '../../posts/views/posts_view.dart';
 import '../../subscription/views/subscription_view.dart';
 import '../controllers/home_controller.dart';
 import '../../../utils/admob_banner_widget.dart';
-import '../../../utils/platform_utils.dart';
+
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -31,7 +31,7 @@ class HomeView extends GetView<HomeController> {
     });
 
     return PopScope(
-      canPop: kIsWeb ? true : false, // 시스템의 뒤로가기 동작을 막습니다.
+      canPop: false, // 시스템의 뒤로가기 동작을 막습니다.
       onPopInvoked: (didPop) async {
         if (didPop) {
           return;
@@ -55,10 +55,8 @@ class HomeView extends GetView<HomeController> {
                   ),
                   const SizedBox(height: 12),
                   // 300x250 중간 직사각형 배너 광고 추가
-                  if (!kIsWeb) ...[
-                    const AdMobMediumRectangleBannerWidget(),
-                    const SizedBox(height: 8),
-                  ],
+                  const AdMobMediumRectangleBannerWidget(),
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
@@ -111,8 +109,8 @@ class HomeView extends GetView<HomeController> {
             mainAxisSize: MainAxisSize.min,
             children: [
               // 배너 광고 위젯 (네비게이션 바 위쪽)
-              const UnifiedBannerWidget(
-                adfitAdUnit: 'DAN-U8bbT9CwMuyswC2r',
+              const AdMobBannerWidget(
+                bannerType: AdMobBannerType.home,
               ),
               // 네비게이션 바 (가로형 레이아웃으로 두께 감소)
               Obx(() => Container(

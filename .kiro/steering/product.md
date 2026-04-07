@@ -6,7 +6,7 @@
 - **RSS Crawling**: Automated collection of university notices from multiple boards (bachelor, scholarship, student affairs, job postings, extracurricular activities, dormitory notices)
 - **Push Notifications**: Real-time notifications via Firebase Cloud Messaging
 - **Subscription Management**: Users can subscribe to specific notice boards
-- **Cross-Platform**: Flutter mobile app with web support (PWA)
+- **Cross-Platform**: Flutter mobile app (Android/iOS)
 - **Multi-Campus Support**: Supports both Global Campus and Medical Campus dormitory notices
 
 ## Architecture
