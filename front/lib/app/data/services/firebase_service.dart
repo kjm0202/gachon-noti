@@ -128,9 +128,9 @@ class FirebaseService {
           RemoteMessage? message,
         ) {
           if (message != null) {
-            print('App opened from terminated state via notification!');
-            print('Initial message: ${message.data}');
-            handleNotificationClick(message);
+            print('⚠️ FCM 초기 메시지 감지됨 (main.dart에서 이미 처리됨): ${message.data}');
+            // main.dart에서 이미 처리했으므로 여기서는 무시
+            print('✅ main.dart에서 이미 즉시 URL을 열었으므로 중복 처리 방지');
           }
         });
       }
@@ -179,12 +179,10 @@ class FirebaseService {
         final payload =
             notificationAppLaunchDetails?.notificationResponse?.payload;
         if (payload != null && payload.isNotEmpty) {
-          print('앱이 백그라운드 알림 클릭으로 시작됨: $payload');
-          // 약간의 지연 후 처리 (앱이 완전히 초기화된 후)
-          // Future.delayed(const Duration(seconds: 1), () {
-          final message = RemoteMessage(data: {'postLink': payload});
-          _notificationClickCallback?.call(message);
-          // });
+          print('⚠️ 백그라운드 알림으로 앱 시작 감지됨 (main.dart에서 이미 처리됨): $payload');
+          // main.dart에서 이미 처리했으므로 여기서는 무시
+          print('✅ main.dart에서 이미 즉시 URL을 열었으므로 중복 처리 방지');
+          return;
         }
       }
     } catch (e) {
