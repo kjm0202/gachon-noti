@@ -33,12 +33,10 @@ class FirebaseService {
       // 알림 클릭 콜백 저장
       _notificationClickCallback = handleNotificationClick;
 
-      // 네이티브에서 로컬 알림 초기화
-      if (!kIsWeb) {
-        await _initLocalNotifications();
-        // 백그라운드 알림 클릭으로 앱이 시작되었는지 확인
-        await _checkLaunchedFromNotification();
-      }
+      // 로컬 알림 초기화
+      await _initLocalNotifications();
+      // 백그라운드 알림 클릭으로 앱이 시작되었는지 확인
+      await _checkLaunchedFromNotification();
 
       // FCM 권한 요청
       NotificationSettings settings =
@@ -52,15 +50,10 @@ class FirebaseService {
 
       // 플랫폼별 토큰 가져오기
       String? token;
-      if (kIsWeb) {
-        // 웹 환경에서는 VAPID 키가 필요
-        token = await FirebaseMessaging.instance.getToken(
-          vapidKey: API.vapidKey,
-        );
-      } else {
-        // 네이티브 환경에서는 기본 토큰 가져오기
-        token = await FirebaseMessaging.instance.getToken();
-      }
+      
+      // 기본 토큰 가져오기
+      token = await FirebaseMessaging.instance.getToken();
+      
 
       if (token != null) {
         // 현재 세션이 있다면 토큰 저장
@@ -77,25 +70,14 @@ class FirebaseService {
           }
         });
 
-        // 플랫폼별 알림 설정
-        if (kIsWeb) {
-          // 웹에서는 서비스 워커가 백그라운드 메시지를 처리
-          FirebaseMessaging.instance
-              .setForegroundNotificationPresentationOptions(
-            alert: true,
-            badge: true,
-            sound: true,
-          );
-        } else {
-          // 네이티브에서는 main.dart에서 이미 백그라운드 핸들러가 등록됨
-          // 여기서는 포그라운드 알림 표시 옵션만 설정
-          await FirebaseMessaging.instance
-              .setForegroundNotificationPresentationOptions(
-            alert: true,
-            badge: true,
-            sound: true,
-          );
-        }
+
+        // 네이티브에서는 main.dart에서 이미 백그라운드 핸들러가 등록됨
+        // 여기서는 포그라운드 알림 표시 옵션만 설정
+        await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
 
         // 앱이 열려 있을 때 수신된 메시지 처리 (모든 플랫폼 공통)
         FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -107,13 +89,8 @@ class FirebaseService {
               'Message also contained a notification: ${message.notification}',
             );
           }
-
-          // 웹에서는 기존 로직 사용, 네이티브에서는 로컬 알림 표시
-          if (kIsWeb) {
-            showInAppNotification(message);
-          } else {
-            _showLocalNotification(message);
-          }
+          
+          _showLocalNotification(message);
         });
 
         // 앱이 백그라운드에 있는 상태에서 알림 클릭으로 열렸을 때

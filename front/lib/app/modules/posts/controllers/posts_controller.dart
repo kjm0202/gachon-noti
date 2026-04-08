@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../../data/services/supabase_service.dart';
-import '../../../utils/url_launcher_utils.dart';
+import '../../../routes/app_routes.dart';
 
 class PostsController extends GetxController {
   final SupabaseService _supabaseProvider = Get.find<SupabaseService>();
@@ -469,7 +469,11 @@ class PostsController extends GetxController {
 
   // URL 실행
   Future<void> launchUrl(String url) async {
-    await UrlLauncherUtils.launchUrl(url);
+    if (url.trim().isEmpty) {
+      return;
+    }
+
+    await Get.toNamed(Routes.WEBVIEW, arguments: url);
   }
 
   // 날짜 포맷팅 함수

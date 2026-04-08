@@ -54,7 +54,6 @@ class HomeController extends GetxController {
   // 업데이트 확인 메서드
   Future<void> _checkForUpdates() async {
     // 모바일 환경이므로 VersionChecker.needsUpdate()를 바로 호출하거나, 일단 유지합니다.
-    // kIsWeb 조건이 있었으나 이제 항상 실행합니다.
     try {
       final needsUpdate = await VersionChecker.needsUpdate();
       updateAvailable.value = needsUpdate;

@@ -97,7 +97,7 @@ class SettingsView extends GetView<SettingsController> {
 
               const SizedBox(height: 24),
               // 광고 설정 섹션 (웹에서는 숨김)
-              if (!kIsWeb) ...[
+             
                 const Text(
                   '광고 설정',
                   style: TextStyle(
@@ -164,6 +164,37 @@ class SettingsView extends GetView<SettingsController> {
                                 : controller.restorePurchases,
                           ),
                         ],
+                      ),
+                    )),
+                const SizedBox(height: 24),
+              
+
+              if (kDebugMode) ...[
+                const Text(
+                  '개발자 도구',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Obx(() => Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.bug_report_outlined),
+                        title: const Text('Qonversion 읽은 데이터 보기'),
+                        subtitle: const Text(
+                            'SDK가 읽은 product 및 entitlement 목록을 표시합니다.'),
+                        trailing: controller.isLoadingQonversionDebug.value
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.arrow_forward_ios),
+                        onTap: controller.isLoadingQonversionDebug.value
+                            ? null
+                            : controller.showQonversionDebugInfo,
                       ),
                     )),
                 const SizedBox(height: 24),

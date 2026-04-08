@@ -121,12 +121,10 @@ class NotificationUtils {
       await _backgroundLocalNotifications.initialize(initSettings);
 
       // Android 알림 채널 생성 (필수)
-      if (!kIsWeb) {
-        await _backgroundLocalNotifications
+      await _backgroundLocalNotifications
             .resolvePlatformSpecificImplementation<
                 AndroidFlutterLocalNotificationsPlugin>()
             ?.createNotificationChannel(androidChannel);
-      }
 
       final data = message.data;
       final content = createNotificationContent(data);

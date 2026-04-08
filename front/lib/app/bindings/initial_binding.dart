@@ -12,9 +12,7 @@ class InitialBinding extends Bindings {
   void dependencies() {
     // 서비스 프로바이더들은 이미 main.dart에서 초기화 완료
     // AdMob 서비스 등록 (모바일 전용)
-    if (!kIsWeb) {
-      Get.put<AdMobService>(AdMobService(), permanent: true);
-    }
+    Get.put<AdMobService>(AdMobService(), permanent: true);
 
     // 광고 제거 서비스 등록
     Get.put<AdFreeService>(AdFreeService(), permanent: true);
