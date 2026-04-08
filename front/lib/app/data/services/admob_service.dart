@@ -41,8 +41,8 @@ class AdMobService extends GetxController {
           ? 'ca-app-pub-3940256099942544/2435281174' // iOS 테스트 광고 단위 ID
           : 'ca-app-pub-3940256099942544/9214589741') // Android 테스트 광고 단위 ID
       : (Platform.isIOS
-          ? 'ca-app-pub-2873399578890001/3360259499' // iOS 실제 배너 광고 단위 ID
-          : 'ca-app-pub-2873399578890001/1187174683'); // Android 실제 배너 광고 단위 ID
+          ? 'ca-app-pub-4115242064779618/3569298276' // iOS 실제 배너 광고 단위 ID
+          : 'ca-app-pub-4115242064779618/3324416966'); // Android 실제 배너 광고 단위 ID
 
   // 네이티브 광고 단위 ID
   static final String _nativeAdUnitId = kDebugMode
@@ -50,8 +50,8 @@ class AdMobService extends GetxController {
           ? 'ca-app-pub-3940256099942544/3986624511' // iOS 테스트 네이티브 광고 단고 단위 ID
           : 'ca-app-pub-3940256099942544/2247696110') // Android 테스트 네이티브 광고 단위 ID
       : (Platform.isIOS
-          ? 'ca-app-pub-2873399578890001/5114364294' // iOS 실제 네이티브 광고 단위 ID
-          : 'ca-app-pub-2873399578890001/4705416160'); // Android 실제 네이티브 광고 단위 ID
+          ? 'ca-app-pub-4115242064779618/1642603973' // iOS 실제 네이티브 광고 단위 ID
+          : 'ca-app-pub-4115242064779618/6408777703'); // Android 실제 네이티브 광고 단위 ID
 
   @override
   void onInit() {
@@ -161,11 +161,6 @@ class AdMobService extends GetxController {
 
   // 중간 직사각형 배너 광고 로드 (300x250)
   void _loadMediumRectangleBannerAd() {
-    if (kIsWeb) {
-      debugPrint('웹 환경에서는 AdMob을 사용할 수 없습니다.');
-      return;
-    }
-
     try {
       _mediumRectangleBannerAd = BannerAd(
         adUnitId: _bannerAdUnitId,
