@@ -10,9 +10,9 @@ class API {
 
   // Qonversion 설정
   static const String qonversionProjectKey =
-      'zqYcIN4ApJ8VbplXXVbosTfrGxF3eKSZ'; // TODO: 실제 프로젝트 키로 교체
-  static const String removeAdsProductId = 'remove_ads'; // 1회성 광고 제거 제품 ID
-  static const String adFreeEntitlementId = 'remove_ads'; // 광고 제거 권한 ID
+      'URBEms4-3pkSwhhA2E7k620BklZOY3la';
+  static const String removeAdsProductId = 'gachon_noti_remove_ads'; // 1회성 광고 제거 제품 ID
+  static const String adFreeEntitlementId = 'no_ads'; // 광고 제거 권한 ID
   static const String paywallContextKey =
       'remove_ads_paywall'; // No-Code paywall 컨텍스트 키
 }
