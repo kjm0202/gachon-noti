@@ -33,10 +33,12 @@ class AuthService extends GetxService {
         .listen(_handleGoogleAuthEvent)
       ..onError(_handleGoogleAuthError);
 
-    // 7.x: attemptLightweightAuthentication replaces signInSilently.
-    // It may or may not return a Future depending on the platform.
-    // We use the stream-based approach, so we don't await the result here.
-    GoogleSignIn.instance.attemptLightweightAuthentication();
+    // NOTE:
+    // Do not trigger lightweight auth automatically on app startup.
+    // On some Android devices this can surface an account selection/sign-in UI,
+    // which looks like an unwanted login popup on every launch.
+    // We treat Supabase session as the source of truth for auto-login,
+    // and only run interactive Google auth when the user explicitly taps login.
 
     // 인증 상태 변화 구독 (Supabase)
     _authSubscription =
@@ -70,7 +72,7 @@ class AuthService extends GetxService {
   Future<void> _handleGoogleAuthEvent(
       GoogleSignInAuthenticationEvent event) async {
     if (event is GoogleSignInAuthenticationEventSignIn) {
-      // User signed in via Google (e.g., via lightweight auth).
+      // User signed in via Google.
       // For Supabase token exchange, this is handled in loginWithGoogle().
     } else if (event is GoogleSignInAuthenticationEventSignOut) {
       // Google sign-out event received
