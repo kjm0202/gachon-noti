@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 
-
 import '../../posts/controllers/posts_controller.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../routes/app_routes.dart';
@@ -22,27 +21,31 @@ class HomeController extends GetxController {
   final RxBool updateAvailable = false.obs;
   // 로그아웃 진행 중 상태
   final RxBool isLoggingOut = false.obs;
+  Worker? _authWorker;
+  Future<void>? _fcmInitialization;
 
   @override
   Future<void> onInit() async {
     super.onInit();
     await _checkNotificationPermission();
 
-    // 알림 권한이 아직 결정되지 않은 경우 권한 요청 다이얼로그 표시
-    if (notificationPermission.value == AuthorizationStatus.notDetermined) {
-      _showNotificationPermissionDialog();
-    }
-
+    // FirebaseService handles the native permission prompt once per initialization.
     if (_authProvider.isLoggedIn.value) {
       await _initFCM();
     } else {
       // 로그인 상태가 변경될 때 FCM 초기화 수행
-      ever(_authProvider.isLoggedIn, (isLoggedIn) {
+      _authWorker = ever(_authProvider.isLoggedIn, (isLoggedIn) {
         if (isLoggedIn) {
           _initFCM();
         }
       });
     }
+  }
+
+  @override
+  void onClose() {
+    _authWorker?.dispose();
+    super.onClose();
   }
 
   @override
@@ -68,48 +71,27 @@ class HomeController extends GetxController {
     notificationPermission.value = permission.authorizationStatus;
   }
 
-  void _showNotificationPermissionDialog() {
-    Get.dialog(
-      AlertDialog(
-        title: const Text('알림 권한 요청'),
-        content: const Text('새로운 공지사항 알림을 받으려면 알림 권한을 허용해주세요.'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Get.back();
-              _requestNotificationPermission();
-            },
-            child: const Text('확인'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _requestNotificationPermission() async {
-    // 네이티브에서는 FCM이 직접 권한 처리
-    final settings = await FirebaseMessaging.instance.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-    notificationPermission.value = settings.authorizationStatus;
-
-    // 권한을 얻었다면 FCM 초기화
-    if (notificationPermission.value == AuthorizationStatus.authorized) {
-      await _initFCM();
+  Future<void> _initFCM() async {
+    if (isLoggingOut.value || isClosed) return;
+    if (_fcmInitialization != null) return _fcmInitialization;
+    _fcmInitialization = _initializeFCM();
+    try {
+      await _fcmInitialization;
+    } finally {
+      _fcmInitialization = null;
     }
   }
 
-  Future<void> _initFCM() async {
+  Future<void> _initializeFCM() async {
     await _firebaseProvider.initFCM(
       userId: _authProvider.userId.value,
       onTokenRefresh: (token) {
-        print('FCM 토큰 갱신: $token');
+        print('FCM 토큰 갱신 완료');
       },
       showInAppNotification: _showInAppNotification,
       handleNotificationClick: _handleNotificationClick,
     );
+    await _checkNotificationPermission();
   }
 
   void _showInAppNotification(RemoteMessage message) {
@@ -182,6 +164,7 @@ class HomeController extends GetxController {
     try {
       // 로그아웃 시작
       isLoggingOut.value = true;
+      await _fcmInitialization;
 
       // AuthProvider에 통합된 로그아웃 로직 호출
       final result = await _authProvider.logout();
@@ -196,6 +179,10 @@ class HomeController extends GetxController {
     } finally {
       // 로그아웃 완료 (성공 또는 실패)
       isLoggingOut.value = false;
+      // A failed logout must not leave a still-signed-in user without listeners.
+      if (_authProvider.isLoggedIn.value && !isClosed) {
+        await _initFCM();
+      }
     }
   }
 }

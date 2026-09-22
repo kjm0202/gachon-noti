@@ -1,27 +1,34 @@
+import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:get/get.dart';
 import 'package:flutter/foundation.dart';
-import '../../utils/const.dart';
+import 'package:get/get.dart';
 import '../../utils/notification_utils.dart';
 import 'supabase_service.dart';
 
-// 콜백 핸들러 타입 정의
-typedef NotificationCallback = void Function(RemoteMessage message);
-
 class FirebaseService {
   static final FirebaseService _instance = FirebaseService._internal();
-
   factory FirebaseService() => _instance;
-
   FirebaseService._internal();
 
-  // 로컬 알림 플러그인 인스턴스
-  static final FlutterLocalNotificationsPlugin _localNotifications =
-      FlutterLocalNotificationsPlugin();
-
-  // 알림 클릭 콜백
+  static final _localNotifications = FlutterLocalNotificationsPlugin();
   static Function(RemoteMessage)? _notificationClickCallback;
+  StreamSubscription<String>? _tokenSubscription;
+  StreamSubscription<RemoteMessage>? _messageSubscription;
+  StreamSubscription<RemoteMessage>? _openedSubscription;
+  Future<void> _tokenWork = Future.value();
+  String? _userId;
+  String? _lastToken;
+  int _generation = 0;
+
+  Future<void> _cancelListeners() async {
+    await _tokenSubscription?.cancel();
+    await _messageSubscription?.cancel();
+    await _openedSubscription?.cancel();
+    _tokenSubscription = null;
+    _messageSubscription = null;
+    _openedSubscription = null;
+  }
 
   Future<String?> initFCM({
     required String? userId,
@@ -29,254 +36,138 @@ class FirebaseService {
     required Function(RemoteMessage message) showInAppNotification,
     required Function(RemoteMessage message) handleNotificationClick,
   }) async {
+    final generation = ++_generation;
+    _userId = userId;
+    await _cancelListeners();
     try {
-      // 알림 클릭 콜백 저장
-      _notificationClickCallback = handleNotificationClick;
-
-      // 로컬 알림 초기화
-      await _initLocalNotifications();
-      // 백그라운드 알림 클릭으로 앱이 시작되었는지 확인
-      await _checkLaunchedFromNotification();
-
-      // FCM 권한 요청
-      NotificationSettings settings =
-          await FirebaseMessaging.instance.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-        provisional: true,
+      if (userId == null || userId.isEmpty) return null;
+      await _localNotifications.initialize(
+        const InitializationSettings(
+          android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+          iOS: DarwinInitializationSettings(),
+        ),
+        onDidReceiveNotificationResponse: (response) {
+          final link = response.payload;
+          if (link != null && link.isNotEmpty) {
+            _notificationClickCallback
+                ?.call(RemoteMessage(data: {'postLink': link}));
+          }
+        },
       );
-      print('FCM permission status: ${settings.authorizationStatus}');
-
-      // 플랫폼별 토큰 가져오기
-      String? token;
-      
-      // 기본 토큰 가져오기
-      token = await FirebaseMessaging.instance.getToken();
-      
-
-      if (token != null) {
-        // 현재 세션이 있다면 토큰 저장
-        if (userId != null) {
-          await saveFcmTokenToServer(userId, token);
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(NotificationUtils.androidChannel);
+      await FirebaseMessaging.instance
+          .requestPermission(alert: true, badge: true, sound: true);
+      if (generation != _generation) return null;
+      _notificationClickCallback = handleNotificationClick;
+      // Subscribe even if the first getToken call returns null or fails.
+      _tokenSubscription =
+          FirebaseMessaging.instance.onTokenRefresh.listen((token) {
+        if (generation != _generation) return;
+        onTokenRefresh(token);
+        _queueToken(userId, token, generation);
+      });
+      _messageSubscription = FirebaseMessaging.onMessage.listen((message) {
+        if (generation == _generation) _showLocalNotification(message);
+      });
+      _openedSubscription =
+          FirebaseMessaging.onMessageOpenedApp.listen((message) {
+        if (generation == _generation) {
+          _notificationClickCallback?.call(message);
         }
-
-        // 토큰 갱신 리스너
-        FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
-          print('FCM Token refreshed: $newToken');
-          onTokenRefresh(newToken);
-          if (userId != null) {
-            await saveFcmTokenToServer(userId, newToken);
-          }
-        });
-
-
-        // 네이티브에서는 main.dart에서 이미 백그라운드 핸들러가 등록됨
-        // 여기서는 포그라운드 알림 표시 옵션만 설정
-        await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-          alert: true,
-          badge: true,
-          sound: true,
-        );
-
-        // 앱이 열려 있을 때 수신된 메시지 처리 (모든 플랫폼 공통)
-        FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-          print('Got a message whilst in the foreground!');
-          print('Message data: ${message.data}');
-
-          if (message.notification != null) {
-            print(
-              'Message also contained a notification: ${message.notification}',
-            );
-          }
-          
-          _showLocalNotification(message);
-        });
-
-        // 앱이 백그라운드에 있는 상태에서 알림 클릭으로 열렸을 때
-        FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-          print('A new onMessageOpenedApp event was published!');
-          print('Message data: ${message.data}');
-          handleNotificationClick(message);
-        });
-
-        // 앱이 종료된 상태에서 알림 클릭으로 열렸을 때의 초기 메시지 확인
-        FirebaseMessaging.instance.getInitialMessage().then((
-          RemoteMessage? message,
-        ) {
-          if (message != null) {
-            print('⚠️ FCM 초기 메시지 감지됨 (main.dart에서 이미 처리됨): ${message.data}');
-            // main.dart에서 이미 처리했으므로 여기서는 무시
-            print('✅ main.dart에서 이미 즉시 URL을 열었으므로 중복 처리 방지');
-          }
-        });
-      }
-
+      });
+      // Local notifications render foreground messages; avoid duplicate OS banners.
+      await FirebaseMessaging.instance
+          .setForegroundNotificationPresentationOptions(
+        alert: false,
+        badge: false,
+        sound: false,
+      );
+      final token = await FirebaseMessaging.instance.getToken();
+      if (generation != _generation) return null;
+      if (token != null) await _queueToken(userId, token, generation);
       return token;
-    } catch (e) {
-      print('FCM initialization error: $e');
+    } catch (error) {
+      debugPrint('FCM initialization failed: $error');
       return null;
     }
   }
 
-  // 로컬 알림 초기화 (네이티브 전용)
-  static Future<void> _initLocalNotifications() async {
-    const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosSettings = DarwinInitializationSettings(
-      requestSoundPermission: true,
-      requestBadgePermission: true,
-      requestAlertPermission: true,
-    );
-
-    const initSettings = InitializationSettings(
-      android: androidSettings,
-      iOS: iosSettings,
-    );
-
-    await _localNotifications.initialize(
-      initSettings,
-      onDidReceiveNotificationResponse: _onNotificationTapped,
-    );
-
-    // Android 알림 채널 생성 (포그라운드용)
-    await _localNotifications
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(NotificationUtils.androidChannel);
+  Future<void> _queueToken(String userId, String token, int generation) {
+    _tokenWork = _tokenWork.then((_) async {
+      if (generation != _generation || _userId != userId) return;
+      await saveFcmTokenToServer(userId, token);
+    }).catchError((Object error) {
+      debugPrint('Device registration failed: $error');
+    });
+    return _tokenWork;
   }
 
-  // 백그라운드 알림 클릭으로 앱이 시작되었는지 확인
-  static Future<void> _checkLaunchedFromNotification() async {
-    try {
-      final notificationAppLaunchDetails =
-          await _localNotifications.getNotificationAppLaunchDetails();
-
-      if (notificationAppLaunchDetails?.didNotificationLaunchApp == true) {
-        final payload =
-            notificationAppLaunchDetails?.notificationResponse?.payload;
-        if (payload != null && payload.isNotEmpty) {
-          print('⚠️ 백그라운드 알림으로 앱 시작 감지됨 (main.dart에서 이미 처리됨): $payload');
-          // main.dart에서 이미 처리했으므로 여기서는 무시
-          print('✅ main.dart에서 이미 즉시 URL을 열었으므로 중복 처리 방지');
-          return;
-        }
-      }
-    } catch (e) {
-      print('백그라운드 알림 시작 확인 오류: $e');
-    }
-  }
-
-  // 로컬 알림 표시 (네이티브 전용)
   static Future<void> _showLocalNotification(RemoteMessage message) async {
     try {
-      final data = message.data;
-      final content = NotificationUtils.createNotificationContent(data);
-      final String payload = NotificationUtils.extractUrlFromMessage(message);
-
-      // 고유한 알림 ID 생성 (메시지 ID 기반)
-      final int notificationId = NotificationUtils.generateUniqueNotificationId(
-          message.messageId ?? '');
-
+      final content = NotificationUtils.createNotificationContent(message.data);
       await _localNotifications.show(
-        notificationId,
-        content['title']!,
-        content['body']!,
+        NotificationUtils.generateUniqueNotificationId(
+          message.data['postId'] ?? message.messageId ?? '',
+        ),
+        content['title'],
+        content['body'],
         NotificationUtils.notificationDetails,
-        payload: payload,
+        payload: NotificationUtils.extractUrlFromMessage(message),
       );
-
-      print('포그라운드 알림 표시 완료: ${content['title']} (ID: $notificationId)');
-    } catch (e) {
-      print('로컬 알림 표시 오류: $e');
+    } catch (error) {
+      debugPrint('Notification display failed: $error');
     }
   }
 
-  // 알림 클릭 처리
-  static void _onNotificationTapped(NotificationResponse response) {
-    try {
-      if (response.payload != null && response.payload!.isNotEmpty) {
-        print('로컬 알림 클릭됨: ${response.payload}');
-        // 메시지 재구성
-        final message = RemoteMessage(
-          data: {'postLink': response.payload!},
-        );
-        _notificationClickCallback?.call(message);
-      }
-    } catch (e) {
-      print('알림 클릭 처리 오류: $e');
-    }
-  }
-
-  Future<void> saveFcmTokenToServer(
-    String userId,
-    String fcmToken,
-  ) async {
-    if (fcmToken.isEmpty) return;
-
-    print('Saving token "$fcmToken" for userId="$userId" to user_devices...');
-    try {
-      final supabase = Get.find<SupabaseService>().client;
-
-      // user_devices 테이블에서 같은 userId와 fcmToken을 가진 레코드 확인
-      final existing = await supabase
+  Future<void> saveFcmTokenToServer(String userId, String token) async {
+    final db = Get.find<SupabaseService>().client;
+    if (token.isEmpty || db.auth.currentUser?.id != userId) return;
+    await db.from('user_devices').upsert({
+      'user_id': userId,
+      'fcm_token': token,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }, onConflict: 'fcm_token');
+    final previous = _lastToken;
+    _lastToken = token;
+    if (previous != null && previous != token) {
+      await db
           .from('user_devices')
-          .select('id')
+          .delete()
           .eq('user_id', userId)
-          .eq('fcm_token', fcmToken)
-          .maybeSingle();
-
-      if (existing == null) {
-        // 없으면 새로 추가
-        await supabase.from('user_devices').insert({
-          'user_id': userId,
-          'fcm_token': fcmToken,
-          'created_at': DateTime.now().toIso8601String(),
-        });
-        print('FCM token saved to user_devices.');
-      } else {
-        print('Token already exists in user_devices.');
-      }
-    } catch (e) {
-      print('Error saving token: $e');
+          .eq('fcm_token', previous);
     }
   }
 
-  // 로그아웃 시 FCM 토큰 삭제 메서드
+  // Must run while the Supabase session still permits deleting this user's row.
   Future<void> removeFcmToken(String userId) async {
-    try {
-      print('Removing FCM tokens for userId "$userId"...');
-
-      // 현재 FCM 토큰 가져오기
-      final token = await FirebaseMessaging.instance.getToken();
-
-      if (token != null) {
-        final supabase = Get.find<SupabaseService>().client;
-
-        // 현재 디바이스의 토큰만 삭제
-        await supabase
-            .from('user_devices')
-            .delete()
-            .eq('user_id', userId)
-            .eq('fcm_token', token);
-
-        print('FCM token removed from user_devices.');
-
-        // 토큰 삭제
-        await FirebaseMessaging.instance.deleteToken();
-        print('FCM token deleted from device.');
-      }
-    } catch (e) {
-      print('Error removing FCM token: $e');
+    ++_generation;
+    _userId = null;
+    _notificationClickCallback = null;
+    await _cancelListeners();
+    await _tokenWork;
+    final db = Get.find<SupabaseService>().client;
+    final token = await FirebaseMessaging.instance.getToken();
+    final tokens = <String>{
+      if (token != null) token,
+      if (_lastToken != null) _lastToken!
+    };
+    await FirebaseMessaging.instance.deleteToken();
+    for (final value in tokens) {
+      await db
+          .from('user_devices')
+          .delete()
+          .eq('user_id', userId)
+          .eq('fcm_token', value);
     }
+    _lastToken = null;
+    // Server snapshot retains removed tokens until topic unsubscription completes.
   }
 
   Future<bool> checkNotificationPermission() async {
-    final permission =
-        await FirebaseMessaging.instance.getNotificationSettings();
-    if (permission.authorizationStatus == AuthorizationStatus.denied) {
-      return false;
-    }
-    return true;
+    final settings = await FirebaseMessaging.instance.getNotificationSettings();
+    return settings.authorizationStatus != AuthorizationStatus.denied;
   }
 }

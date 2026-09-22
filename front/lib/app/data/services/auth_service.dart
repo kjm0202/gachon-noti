@@ -207,17 +207,17 @@ class AuthService extends GetxService {
       // 현재 유저 ID 저장 (로그아웃 후에는 사라지므로)
       final currentUserId = userId.value;
 
+      // RLS requires the current session to remove this device.
+      if (currentUserId.isNotEmpty) {
+        await _firebaseProvider.removeFcmToken(currentUserId);
+      }
+
       // 7.x: Sign out from Google Sign-In.
       // There is no isSignedIn() check in 7.x — just call signOut() directly.
       await GoogleSignIn.instance.signOut();
 
       // Supabase 로그아웃 처리
       await _supabaseProvider.client.auth.signOut();
-
-      // FCM 토큰 삭제 처리
-      if (currentUserId.isNotEmpty) {
-        await _firebaseProvider.removeFcmToken(currentUserId);
-      }
 
       // 상태 초기화
       userEmail.value = '';

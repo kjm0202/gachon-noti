@@ -67,7 +67,11 @@ class NotificationUtils {
   static int generateUniqueNotificationId(String messageId) {
     if (messageId.isNotEmpty) {
       // 메시지 ID의 해시코드를 사용하여 고유 ID 생성
-      final id = messageId.hashCode.abs();
+      // Stable across isolates/restarts; repeated delivery replaces the same notice.
+      var id = 0;
+      for (final unit in messageId.codeUnits) {
+        id = (id * 31 + unit) & 0x7fffffff;
+      }
       debugPrint('알림 ID 생성: $id (기반: $messageId)');
       return id;
     } else {
@@ -122,17 +126,17 @@ class NotificationUtils {
 
       // Android 알림 채널 생성 (필수)
       await _backgroundLocalNotifications
-            .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin>()
-            ?.createNotificationChannel(androidChannel);
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(androidChannel);
 
       final data = message.data;
       final content = createNotificationContent(data);
       final String payload = extractUrlFromMessage(message);
 
       // 고유한 알림 ID 생성 (메시지 ID 기반)
-      final int notificationId =
-          generateUniqueNotificationId(message.messageId ?? '');
+      final int notificationId = generateUniqueNotificationId(
+          message.data['postId'] ?? message.messageId ?? '');
 
       // 알림 표시 (고유 ID 사용)
       await _backgroundLocalNotifications.show(
