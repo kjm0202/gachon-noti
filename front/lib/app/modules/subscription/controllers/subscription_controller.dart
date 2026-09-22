@@ -259,6 +259,8 @@ class SubscriptionController extends GetxController {
           .eq('id', subscriptionId.value)
           .select();
 
+      if (response.isEmpty) throw StateError('구독 설정이 저장되지 않았습니다.');
+
       print('구독 업데이트 성공: 응답 데이터=$response');
       subscribedBoards.value = List<String>.from(tempSubscribedBoards);
       print('구독된 게시판 목록 업데이트 완료: ${subscribedBoards.toList()}');
@@ -296,6 +298,7 @@ class SubscriptionController extends GetxController {
     try {
       if (subscriptionId.isEmpty) {
         await createEmptySubscription();
+        if (subscriptionId.isEmpty) return;
         await toggleBoard(boardId);
         return;
       }
