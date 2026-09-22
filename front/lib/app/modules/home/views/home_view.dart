@@ -8,14 +8,23 @@ import '../../subscription/views/subscription_view.dart';
 import '../controllers/home_controller.dart';
 import '../../../utils/admob_banner_widget.dart';
 
-
-class HomeView extends GetView<HomeController> {
+class HomeView extends StatefulWidget {
   const HomeView({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  State<HomeView> createState() => _HomeViewState();
+}
+
+class _HomeViewState extends State<HomeView> {
+  final HomeController controller = Get.find<HomeController>();
+  late final Worker _subscriptionWorker;
+  late final Worker _updateWorker;
+
+  @override
+  void initState() {
+    super.initState();
     // 구독 변경 알림을 위한 리스너 설정
-    ever(controller.subscriptionChanged, (changed) {
+    _subscriptionWorker = ever(controller.subscriptionChanged, (changed) {
       if (changed) {
         _showSubscriptionChangedSnackBar();
         // 상태 초기화
@@ -24,12 +33,22 @@ class HomeView extends GetView<HomeController> {
     });
 
     // 업데이트 확인 리스너 설정
-    ever(controller.updateAvailable, (available) {
+    _updateWorker = ever(controller.updateAvailable, (available) {
       if (available) {
         controller.showUpdateSnackbar(context);
       }
     });
+  }
 
+  @override
+  void dispose() {
+    _subscriptionWorker.dispose();
+    _updateWorker.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return PopScope(
       canPop: false, // 시스템의 뒤로가기 동작을 막습니다.
       onPopInvoked: (didPop) async {

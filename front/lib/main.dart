@@ -75,7 +75,8 @@ Future<void> _checkInitialNotification() async {
     );
     await localNotifications.initialize(initSettings);
 
-    final launchDetails = await localNotifications.getNotificationAppLaunchDetails();
+    final launchDetails =
+        await localNotifications.getNotificationAppLaunchDetails();
     if (launchDetails?.didNotificationLaunchApp == true) {
       final payload = launchDetails?.notificationResponse?.payload;
       if (payload != null && payload.isNotEmpty) {
@@ -88,15 +89,22 @@ Future<void> _checkInitialNotification() async {
   }
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late final Future<String> _services = _initializeServices();
 
   @override
   Widget build(BuildContext context) {
     final materialTheme = MaterialTheme(Theme.of(context).textTheme);
 
     return FutureBuilder<String>(
-      future: _initializeServices(),
+      future: _services,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done &&
             snapshot.hasData) {
@@ -108,6 +116,11 @@ class MyApp extends StatelessWidget {
             themeMode: ThemeMode.system,
             initialBinding: InitialBinding(),
             initialRoute: snapshot.data!,
+            onReady: () {
+              final url = _pendingNotificationUrl;
+              _pendingNotificationUrl = null;
+              if (url != null) Get.toNamed(Routes.WEBVIEW, arguments: url);
+            },
             getPages: AppPages.routes,
             defaultTransition: Transition.fade,
           );
@@ -117,8 +130,11 @@ class MyApp extends StatelessWidget {
             theme: materialTheme.light(),
             darkTheme: materialTheme.dark(),
             themeMode: ThemeMode.system,
-            home: const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
+            home: Scaffold(
+              body: Center(
+                  child: snapshot.hasError
+                      ? const Text('앱 초기화에 실패했습니다. 앱을 다시 실행해주세요.')
+                      : const CircularProgressIndicator()),
             ),
           );
         }
@@ -141,16 +157,6 @@ class MyApp extends StatelessWidget {
 
     // 로그인 상태 확인
     final isLoggedIn = await authProvider.checkCurrentSession();
-
-    // 알림으로 앱이 시작된 경우 WebView로 바로 이동
-    if (_pendingNotificationUrl != null) {
-      final url = _pendingNotificationUrl!;
-      _pendingNotificationUrl = null;
-      // 다음 프레임에서 WebView로 이동
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Get.toNamed(Routes.WEBVIEW, arguments: url);
-      });
-    }
 
     return isLoggedIn ? Routes.HOME : Routes.LOGIN;
   }
