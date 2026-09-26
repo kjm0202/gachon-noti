@@ -97,61 +97,42 @@ class SettingsView extends GetView<SettingsController> {
 
               const SizedBox(height: 24),
               // 광고 설정 섹션 (웹에서는 숨김)
-             
-                const Text(
-                  '광고 설정',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+
+              const Text(
+                '광고 설정',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(height: 12),
-                Obx(() => Card(
-                      child: Column(
-                        children: [
-                          // 광고 제거 상태 표시
-                          ListTile(
-                            leading: Icon(
-                              controller.isAdFree
-                                  ? Icons.check_circle
-                                  : Icons.ads_click,
-                              color: controller.isAdFree ? Colors.green : null,
-                            ),
-                            title: Text(
-                                controller.isAdFree ? '광고 제거됨' : '광고 표시 중'),
-                            subtitle: Text(
-                              controller.isAdFree
-                                  ? '광고 없이 깔끔한 앱을 즐기고 있습니다.'
-                                  : '광고를 제거하여 더 나은 사용 경험을 누려보세요.',
-                            ),
+              ),
+              const SizedBox(height: 12),
+              Obx(() => Card(
+                    child: Column(
+                      children: [
+                        // 광고 제거 상태 표시
+                        ListTile(
+                          leading: Icon(
+                            controller.isAdFree
+                                ? Icons.check_circle
+                                : Icons.ads_click,
+                            color: controller.isAdFree ? Colors.green : null,
                           ),
-                          if (!controller.isAdFree) ...[
-                            const Divider(height: 1),
-                            // 광고 제거 구매 버튼
-                            ListTile(
-                              leading: const Icon(Icons.shopping_cart),
-                              title: const Text('광고 제거 구매'),
-                              subtitle: const Text('₩2,900 - 1회 결제로 평생 광고 없음'),
-                              trailing: controller.isPurchasing.value
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2),
-                                    )
-                                  : const Icon(Icons.arrow_forward_ios),
-                              onTap: controller.isPurchasing.value
-                                  ? null
-                                  : controller.purchaseRemoveAds,
-                            ),
-                          ],
+                          title:
+                              Text(controller.isAdFree ? '광고 제거됨' : '광고 표시 중'),
+                          subtitle: Text(
+                            controller.isAdFree
+                                ? '광고 없이 깔끔한 앱을 즐기고 있습니다.'
+                                : '광고를 제거하여 더 나은 사용 경험을 누려보세요.',
+                          ),
+                        ),
+                        if (!controller.isAdFree) ...[
                           const Divider(height: 1),
-                          // 구매 복원 버튼
+                          // 광고 제거 구매 버튼
                           ListTile(
-                            leading: const Icon(Icons.restore),
-                            title: const Text('구매 복원'),
-                            subtitle: const Text('이전에 구매한 광고 제거를 복원합니다.'),
-                            trailing: controller.isRestoring.value
+                            leading: const Icon(Icons.shopping_cart),
+                            title: const Text('광고 제거 구매'),
+                            subtitle: const Text('₩2,900 - 1회 결제로 평생 광고 없음'),
+                            trailing: controller.isPurchasing.value
                                 ? const SizedBox(
                                     width: 20,
                                     height: 20,
@@ -159,15 +140,33 @@ class SettingsView extends GetView<SettingsController> {
                                         strokeWidth: 2),
                                   )
                                 : const Icon(Icons.arrow_forward_ios),
-                            onTap: controller.isRestoring.value
+                            onTap: controller.isPurchasing.value
                                 ? null
-                                : controller.restorePurchases,
+                                : controller.purchaseRemoveAds,
                           ),
                         ],
-                      ),
-                    )),
-                const SizedBox(height: 24),
-              
+                        const Divider(height: 1),
+                        // 구매 복원 버튼
+                        ListTile(
+                          leading: const Icon(Icons.restore),
+                          title: const Text('구매 복원'),
+                          subtitle: const Text('이전에 구매한 광고 제거를 복원합니다.'),
+                          trailing: controller.isRestoring.value
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.arrow_forward_ios),
+                          onTap: controller.isRestoring.value
+                              ? null
+                              : controller.restorePurchases,
+                        ),
+                      ],
+                    ),
+                  )),
+              const SizedBox(height: 24),
 
               if (kDebugMode) ...[
                 const Text(
@@ -207,8 +206,8 @@ class SettingsView extends GetView<SettingsController> {
                               : null,
                         ),
                         title: const Text('테스트 알림 전송'),
-                        subtitle: const Text(
-                            '테스트 게시물을 DB에 넣고 이 기기에만 푸시 알림을 전송합니다.'),
+                        subtitle:
+                            const Text('테스트 게시물을 DB에 넣고 이 기기에만 푸시 알림을 전송합니다.'),
                         trailing: controller.isSendingTestNotification.value
                             ? const SizedBox(
                                 width: 20,

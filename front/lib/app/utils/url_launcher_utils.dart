@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
+
 /// URL 실행 관련 공통 유틸리티 함수들
 class UrlLauncherUtils {
   /// 플랫폼에 맞는 방식으로 URL 오픈

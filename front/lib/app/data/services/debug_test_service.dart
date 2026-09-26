@@ -72,7 +72,8 @@ class DebugTestService {
       final data = response.data as Map<String, dynamic>?;
 
       if (data == null) {
-        throw StateError('Edge Function 응답이 비어있습니다. (status: ${response.status})');
+        throw StateError(
+            'Edge Function 응답이 비어있습니다. (status: ${response.status})');
       }
 
       if (data['success'] != true) {
@@ -87,7 +88,8 @@ class DebugTestService {
       if (details is Map && details['error'] != null) {
         throw StateError('${details['error']}');
       }
-      throw StateError('Edge Function 오류 (${e.status}): ${e.reasonPhrase ?? e.toString()}');
+      throw StateError(
+          'Edge Function 오류 (${e.status}): ${e.reasonPhrase ?? e.toString()}');
     }
   }
 }

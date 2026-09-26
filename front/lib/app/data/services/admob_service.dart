@@ -34,7 +34,6 @@ class AdMobService extends GetxController {
   bool get isWebviewBannerAdReady => _isWebviewBannerAdReady.value;
   BannerAd? get webviewBannerAd => _webviewBannerAd;
 
-
   // 광고 단위 ID
   static final String _bannerAdUnitId = kDebugMode
       ? (Platform.isIOS

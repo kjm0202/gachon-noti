@@ -141,8 +141,9 @@ class _HomeViewState extends State<HomeView> {
                           Theme.of(context).colorScheme.surface,
                       border: Border(
                         top: BorderSide(
-                          color:
-                              Theme.of(context).dividerColor.withValues(alpha: 0.3),
+                          color: Theme.of(context)
+                              .dividerColor
+                              .withValues(alpha: 0.3),
                           width: 0.5,
                         ),
                       ),
@@ -201,8 +202,9 @@ class _HomeViewState extends State<HomeView> {
                         Container(
                           width: 0.5,
                           height: 32,
-                          color:
-                              Theme.of(context).dividerColor.withValues(alpha: 0.3),
+                          color: Theme.of(context)
+                              .dividerColor
+                              .withValues(alpha: 0.3),
                         ),
                         Expanded(
                           child: Material(

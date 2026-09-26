@@ -23,8 +23,6 @@ class AdMobBannerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
-
     // AdMobService가 등록되어 있는지 확인
     if (!Get.isRegistered<AdMobService>()) {
       return const SizedBox.shrink();
@@ -82,11 +80,13 @@ class AdMobBannerWidget extends StatelessWidget {
           color: Theme.of(context).colorScheme.surfaceContainer,
           border: Border(
             top: BorderSide(
-              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+              color:
+                  Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
               width: 0.5,
             ),
             bottom: BorderSide(
-              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+              color:
+                  Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
               width: 0.5,
             ),
           ),
@@ -103,8 +103,6 @@ class AdMobMediumRectangleBannerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
-
     // AdMobService가 등록되어 있는지 확인
     if (!Get.isRegistered<AdMobService>()) {
       return const SizedBox.shrink();
