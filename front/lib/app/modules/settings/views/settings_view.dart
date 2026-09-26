@@ -197,6 +197,31 @@ class SettingsView extends GetView<SettingsController> {
                             : controller.showQonversionDebugInfo,
                       ),
                     )),
+                const SizedBox(height: 8),
+                Obx(() => Card(
+                      child: ListTile(
+                        leading: Icon(
+                          Icons.notifications_active,
+                          color: controller.isSendingTestNotification.value
+                              ? Colors.orange
+                              : null,
+                        ),
+                        title: const Text('테스트 알림 전송'),
+                        subtitle: const Text(
+                            '테스트 게시물을 DB에 넣고 이 기기에만 푸시 알림을 전송합니다.'),
+                        trailing: controller.isSendingTestNotification.value
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.arrow_forward_ios),
+                        onTap: controller.isSendingTestNotification.value
+                            ? null
+                            : controller.sendTestNotification,
+                      ),
+                    )),
                 const SizedBox(height: 24),
               ],
 

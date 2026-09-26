@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../routes/app_routes.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../data/services/adfree_service.dart';
+import '../../../data/services/debug_test_service.dart';
 import '../../../data/services/qonversion_service.dart';
 
 class SettingsController extends GetxController {
@@ -25,6 +26,9 @@ class SettingsController extends GetxController {
   final RxBool isRestoring = false.obs;
   final RxBool isLoadingQonversionDebug = false.obs;
 
+  // 테스트 알림 관련 상태
+  final RxBool isSendingTestNotification = false.obs;
+  final RxString selectedTestBoard = 'bachelor'.obs;
 
   @override
   void onInit() {
@@ -480,4 +484,63 @@ class SettingsController extends GetxController {
     }
   }
 
+  // 테스트 알림 전송 (디버그 모드 전용)
+  Future<void> sendTestNotification() async {
+    if (!kDebugMode || isSendingTestNotification.value) return;
+
+    // 게시판 선택 다이얼로그 표시
+    final selectedBoard = await Get.dialog<String>(
+      AlertDialog(
+        title: const Text('테스트 알림 게시판 선택'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: DebugTestService.boardIds.length,
+            itemBuilder: (context, index) {
+              final boardId = DebugTestService.boardIds[index];
+              final boardName = DebugTestService.boardNames[boardId] ?? boardId;
+              return ListTile(
+                leading: const Icon(Icons.label_outline),
+                title: Text(boardName),
+                subtitle: Text(boardId),
+                onTap: () => Get.back(result: boardId),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('취소'),
+          ),
+        ],
+      ),
+    );
+
+    if (selectedBoard == null) return;
+
+    try {
+      isSendingTestNotification.value = true;
+      selectedTestBoard.value = selectedBoard;
+
+      final result = await DebugTestService.instance.sendTestNotification(
+        boardId: selectedBoard,
+      );
+
+      Get.snackbar(
+        '✅ 테스트 알림 전송 성공',
+        '${result['boardName']}: ${result['title']}',
+        duration: const Duration(seconds: 4),
+      );
+    } catch (e) {
+      Get.snackbar(
+        '❌ 테스트 알림 전송 실패',
+        e.toString(),
+        duration: const Duration(seconds: 5),
+      );
+    } finally {
+      isSendingTestNotification.value = false;
+    }
+  }
 }
