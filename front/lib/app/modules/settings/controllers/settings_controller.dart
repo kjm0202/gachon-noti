@@ -345,7 +345,8 @@ class SettingsController extends GetxController {
                                     const SizedBox(height: 4),
                                     _buildBulletPoint('등록 기기 및 푸시 알림 수신 토큰'),
                                     const SizedBox(height: 4),
-                                    _buildBulletPoint('Google 계정 연동 및 로그인 정보'),
+                                    _buildBulletPoint(
+                                        '소셜 계정(Google/Apple) 연동 및 로그인 정보'),
                                   ],
                                 ),
                               ),

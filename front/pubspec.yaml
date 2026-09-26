@@ -29,6 +29,8 @@ dependencies:
   google_mobile_ads: ^9.1.0
   qonversion_flutter: ^11.6.0
   webview_flutter: ^4.13.0
+  sign_in_with_apple: ^8.2.0
+  crypto: ^3.0.7
 
 dependency_overrides:
 

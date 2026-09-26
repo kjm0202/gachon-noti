@@ -30,12 +30,14 @@ class LoginView extends GetView<LoginController> {
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               const SizedBox(height: 48),
-              Obx(() => ElevatedButton(
+              Obx(
+                () => SizedBox(
+                  width: 240,
+                  child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      // backgroundColor: Color(0xffb8d6f4),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 16,
+                        horizontal: 20,
+                        vertical: 14,
                       ),
                       elevation: 2,
                     ),
@@ -43,33 +45,80 @@ class LoginView extends GetView<LoginController> {
                         ? null
                         : () => controller.loginWithGoogle(),
                     child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Image.asset(
                           'assets/icons/google.webp',
-                          width: 24,
-                          height: 24,
+                          width: 22,
+                          height: 22,
                         ),
                         const SizedBox(width: 12),
                         controller.isLoading.value
                             ? const SizedBox(
-                                width: 24,
-                                height: 24,
+                                width: 22,
+                                height: 22,
                                 child: CircularProgressIndicator(
-                                  color: Colors.white,
                                   strokeWidth: 2,
                                 ),
                               )
                             : const Text(
                                 '구글 계정으로 로그인',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  // color: Colors.white,
-                                ),
+                                style: TextStyle(fontSize: 15),
                               ),
                       ],
                     ),
-                  )),
+                  ),
+                ),
+              ),
+              if (Theme.of(context).platform == TargetPlatform.iOS) ...[
+                const SizedBox(height: 12),
+                Obx(
+                  () => SizedBox(
+                    width: 240,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 14,
+                        ),
+                        elevation: 2,
+                      ),
+                      onPressed: controller.isLoading.value
+                          ? null
+                          : () => controller.loginWithApple(),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.apple,
+                            size: 24,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 10),
+                          controller.isLoading.value
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'Apple로 로그인',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () => launchUrl(

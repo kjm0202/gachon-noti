@@ -35,4 +35,27 @@ class LoginController extends GetxController {
       );
     }
   }
+
+  Future<void> loginWithApple() async {
+    isLoading.value = true;
+
+    try {
+      await _authProvider.loginWithApple(
+        onLoginSuccess: () {
+          isLoading.value = false;
+          Get.offAllNamed(Routes.home);
+        },
+        onLoginFailed: () {
+          isLoading.value = false;
+        },
+      );
+    } catch (e) {
+      isLoading.value = false;
+      Get.snackbar(
+        '오류',
+        '로그인 중 오류가 발생했습니다: $e',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
+  }
 }

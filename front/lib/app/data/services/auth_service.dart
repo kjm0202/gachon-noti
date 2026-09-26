@@ -3,7 +3,11 @@ import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'dart:async';
+import 'dart:convert';
+import 'dart:math';
+import 'package:crypto/crypto.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import 'supabase_service.dart';
 import 'firebase_service.dart';
@@ -200,6 +204,95 @@ class AuthService extends GetxService {
     }
   }
 
+  /// SHA256 해시를 생성하기 위한 32자 무작위 raw nonce 생성
+  String _generateRawNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(
+      length,
+      (_) => charset[random.nextInt(charset.length)],
+    ).join();
+  }
+
+  /// 문자열을 SHA256으로 해시
+  String _sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
+
+  /// Apple 로그인
+  Future<bool> loginWithApple({
+    required Function onLoginSuccess,
+    required Function onLoginFailed,
+  }) async {
+    try {
+      _pendingLoginSuccess = onLoginSuccess;
+
+      final rawNonce = _generateRawNonce();
+      final hashedNonce = _sha256ofString(rawNonce);
+
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: hashedNonce,
+      );
+
+      final idToken = credential.identityToken;
+      if (idToken == null) {
+        debugPrint('Apple ID 토큰을 가져올 수 없습니다');
+        onLoginFailed();
+        _pendingLoginSuccess = null;
+        return false;
+      }
+
+      // Supabase에 Apple ID 토큰으로 로그인
+      final response = await _supabaseProvider.client.auth.signInWithIdToken(
+        provider: OAuthProvider.apple,
+        idToken: idToken,
+        nonce: rawNonce,
+      );
+
+      if (response.user != null) {
+        // onAuthStateChange에서 처리됨
+        return true;
+      } else {
+        onLoginFailed();
+        _pendingLoginSuccess = null;
+        return false;
+      }
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) {
+        debugPrint('Apple 로그인이 취소되었습니다');
+      } else {
+        debugPrint('Apple Sign-In 실패: ${e.code} - ${e.message}');
+        Get.snackbar(
+          '로그인 실패',
+          '로그인에 실패했습니다. 다시 시도해주세요.',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
+      onLoginFailed();
+      _pendingLoginSuccess = null;
+      return false;
+    } catch (e) {
+      debugPrint('Apple login failed: $e');
+      onLoginFailed();
+      _pendingLoginSuccess = null;
+
+      Get.snackbar(
+        '로그인 실패',
+        '로그인에 실패했습니다. 다시 시도해주세요.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+
+      return false;
+    }
+  }
+
   // 사용자 로그아웃 처리
   Future<bool> logout() async {
     try {
@@ -211,9 +304,16 @@ class AuthService extends GetxService {
         await _firebaseProvider.removeFcmToken(currentUserId);
       }
 
-      // 7.x: Sign out from Google Sign-In.
-      // There is no isSignedIn() check in 7.x — just call signOut() directly.
-      await GoogleSignIn.instance.signOut();
+      // 현재 로그인 provider 확인 후 Google인 경우에만 Google Sign-Out
+      final currentProvider =
+          _supabaseProvider.client.auth.currentUser?.appMetadata['provider'];
+      if (currentProvider == 'google') {
+        try {
+          await GoogleSignIn.instance.signOut();
+        } catch (googleError) {
+          debugPrint('Google Sign-In signOut error: $googleError');
+        }
+      }
 
       // Supabase 로그아웃 처리
       await _supabaseProvider.client.auth.signOut();
@@ -265,17 +365,21 @@ class AuthService extends GetxService {
             '회원탈퇴 처리 실패 (${e.status}): ${e.reasonPhrase ?? e.toString()}');
       }
 
-      // 3. Google Sign-In 연동 해제 (disconnect로 앱 연동 권한 완전 철회)
-      try {
-        await GoogleSignIn.instance.disconnect();
-        debugPrint('Google Sign-In 연동 해제(disconnect) 완료');
-      } catch (e) {
-        debugPrint(
-            'Google Sign-In disconnect error (falling back to signOut): $e');
+      // 3. Google Sign-In 연동 해제 (Google 계정으로 로그인한 경우에만 disconnect 호출)
+      final currentProvider =
+          _supabaseProvider.client.auth.currentUser?.appMetadata['provider'];
+      if (currentProvider == 'google') {
         try {
-          await GoogleSignIn.instance.signOut();
-        } catch (signOutError) {
-          debugPrint('Google Sign-In signOut error: $signOutError');
+          await GoogleSignIn.instance.disconnect();
+          debugPrint('Google Sign-In 연동 해제(disconnect) 완료');
+        } catch (e) {
+          debugPrint(
+              'Google Sign-In disconnect error (falling back to signOut): $e');
+          try {
+            await GoogleSignIn.instance.signOut();
+          } catch (signOutError) {
+            debugPrint('Google Sign-In signOut error: $signOutError');
+          }
         }
       }
 
