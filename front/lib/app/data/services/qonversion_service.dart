@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:qonversion_flutter/qonversion_flutter.dart';
@@ -110,6 +109,8 @@ class QonversionService extends GetxController {
 
       // 먼저 offerings 방법 시도
       try {
+        // Preserve dashboard offering selection until Remote Configs are migrated.
+        // ignore: deprecated_member_use
         final offerings = await Qonversion.getSharedInstance().offerings();
         _offerings.value = offerings;
 
@@ -214,8 +215,22 @@ class QonversionService extends GetxController {
       debugPrint(
           '구매할 제품: ${product.qonversionId} (${product.storeId}) - ${product.prettyPrice}');
 
-      final entitlements =
-          await Qonversion.getSharedInstance().purchaseProduct(product);
+      final result =
+          await Qonversion.getSharedInstance().purchaseWithResult(product);
+      if (result.isCanceled) {
+        Get.snackbar('취소', '구매가 취소되었습니다.');
+        return false;
+      }
+      if (result.isPending) {
+        Get.snackbar('알림', '구매가 처리 중입니다. 잠시 후 다시 확인해주세요.');
+        return false;
+      }
+      if (!result.isSuccess) {
+        debugPrint('구매 실패: ${result.error}');
+        Get.snackbar('구매 실패', '구매 중 오류가 발생했습니다.');
+        return false;
+      }
+      final entitlements = result.entitlements ?? <String, QEntitlement>{};
 
       // 구매 성공 확인
       if (entitlements.containsKey(API.adFreeEntitlementId) &&
@@ -312,6 +327,18 @@ class QonversionService extends GetxController {
     } catch (e) {
       debugPrint('광고 제거 권한 확인 실패: $e');
       return false; // 에러 시 광고 표시
+    }
+  }
+
+  // 사용자 식별자 및 캐시 초기화 (회원탈퇴 시 호출)
+  Future<void> resetUser() async {
+    if (!_isInitialized.value) return;
+    try {
+      debugPrint('Qonversion resetUser(logout) 시작...');
+      await Qonversion.getSharedInstance().logout();
+      debugPrint('Qonversion resetUser 완료');
+    } catch (e) {
+      debugPrint('Qonversion resetUser 실패: $e');
     }
   }
 

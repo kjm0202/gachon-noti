@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../routes/app_routes.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../data/services/adfree_service.dart';
 import '../../../data/services/qonversion_service.dart';
@@ -10,8 +12,10 @@ class SettingsController extends GetxController {
   final AuthService _authService = Get.find<AuthService>();
   final AdFreeService _adFreeService = Get.find<AdFreeService>();
 
-  // 로그아웃 상태
+  // 로그아웃 및 회원탈퇴 상태
   final RxBool isLoggingOut = false.obs;
+  final RxBool isDeletingAccount = false.obs;
+  final RxBool hasConfirmedDeletion = false.obs;
 
   // 앱 버전 정보
   final RxString appVersion = '1.0.0'.obs;
@@ -20,6 +24,7 @@ class SettingsController extends GetxController {
   final RxBool isPurchasing = false.obs;
   final RxBool isRestoring = false.obs;
   final RxBool isLoadingQonversionDebug = false.obs;
+
 
   @override
   void onInit() {
@@ -33,7 +38,7 @@ class SettingsController extends GetxController {
       final PackageInfo packageInfo = await PackageInfo.fromPlatform();
       appVersion.value = packageInfo.version;
     } catch (e) {
-      print('앱 버전을 가져오는 중 오류 발생: $e');
+      debugPrint('앱 버전을 가져오는 중 오류 발생: $e');
       // 오류 발생 시 기본값 유지
       appVersion.value = '1.0.0';
     }
@@ -259,39 +264,220 @@ class SettingsController extends GetxController {
 
   // 회원탈퇴 다이얼로그 표시
   void showDeleteAccountDialog() {
+    hasConfirmedDeletion.value = false;
+
     Get.dialog(
-      AlertDialog(
-        title: Text(
-          '회원탈퇴',
-          style: TextStyle(color: Colors.red[700]),
+      PopScope(
+        canPop: !isDeletingAccount.value,
+        child: Builder(
+          builder: (context) {
+            final theme = Theme.of(context);
+            final colorScheme = theme.colorScheme;
+
+            return Obx(
+              () => AlertDialog(
+                title: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: colorScheme.error,
+                      size: 26,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '회원탈퇴',
+                      style: TextStyle(
+                        color: colorScheme.error,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
+                ),
+                content: isDeletingAccount.value
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 24.0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircularProgressIndicator(color: Colors.red),
+                            SizedBox(height: 16),
+                            Text(
+                              '회원탈퇴 및 데이터 정리 중...',
+                              style: TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                      )
+                    : SizedBox(
+                        width: double.maxFinite,
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                '정말로 탈퇴하시겠습니까?\n탈퇴 시 다음 정보가 즉시 영구 삭제되며 복구할 수 없습니다.',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  height: 1.4,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+
+                              // 삭제 항목 안내 카드
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.surfaceContainerHighest
+                                      .withValues(alpha: 0.6),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildBulletPoint('알림 키워드 및 공지사항 구독 설정'),
+                                    const SizedBox(height: 4),
+                                    _buildBulletPoint('등록 기기 및 푸시 알림 수신 토큰'),
+                                    const SizedBox(height: 4),
+                                    _buildBulletPoint('Google 계정 연동 및 로그인 정보'),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+
+                              // 💡 광고 제거(1회성 구매) 구매자 안내 카드
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.secondaryContainer
+                                      .withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.info_outline_rounded,
+                                      size: 18,
+                                      color: colorScheme.onSecondaryContainer,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '광고 제거 1회성 구매 내역은 스토어(Google Play / App Store) 계정에 안전하게 유지됩니다. 탈퇴 후 동일한 스토어 계정으로 다시 이용 시 [구매 복원]을 통해 언제든 광고 없이 이용하실 수 있습니다.',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          height: 1.35,
+                                          color:
+                                              colorScheme.onSecondaryContainer,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+
+                              // 확인 체크박스
+                              CheckboxListTile(
+                                value: hasConfirmedDeletion.value,
+                                onChanged: (val) {
+                                  hasConfirmedDeletion.value = val ?? false;
+                                },
+                                contentPadding: EdgeInsets.zero,
+                                controlAffinity:
+                                    ListTileControlAffinity.leading,
+                                dense: true,
+                                activeColor: colorScheme.error,
+                                title: const Text(
+                                  '위 유의사항을 모두 확인하였으며, 회원탈퇴에 동의합니다.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                actions: [
+                  if (!isDeletingAccount.value) ...[
+                    TextButton(
+                      onPressed: () => Get.back(),
+                      child: const Text('취소'),
+                    ),
+                    FilledButton(
+                      onPressed:
+                          hasConfirmedDeletion.value ? deleteAccount : null,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: colorScheme.error,
+                        foregroundColor: colorScheme.onError,
+                        disabledBackgroundColor:
+                            colorScheme.error.withValues(alpha: 0.3),
+                      ),
+                      child: const Text(
+                        '탈퇴하기',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
         ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.warning_amber_outlined,
-              color: Colors.orange,
-              size: 48,
-            ),
-            SizedBox(height: 16),
-            Text(
-              '회원탈퇴 기능은 현재 준비 중입니다.\n추후 업데이트에서 제공될 예정입니다.',
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('확인'),
-          ),
-        ],
       ),
+      barrierDismissible: false,
     );
   }
 
-  // 회원탈퇴 기능 (아직 미구현)
-  void deleteAccount() {
-    Get.snackbar('알림', '회원탈퇴 기능은 아직 준비 중입니다.');
+  Widget _buildBulletPoint(String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('• ',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(fontSize: 13),
+          ),
+        ),
+      ],
+    );
   }
+
+  // 회원탈퇴 기능 실행
+  Future<void> deleteAccount() async {
+    try {
+      isDeletingAccount.value = true;
+      await _authService.deleteAccount();
+      Get.back(); // 다이얼로그 닫기
+      Get.offAllNamed(Routes.login); // 로그인 화면으로 이동
+      Get.snackbar(
+        '탈퇴 완료',
+        '회원탈퇴 및 데이터 정리가 정상적으로 완료되었습니다.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.grey[850],
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      Get.snackbar(
+        '회원탈퇴 실패',
+        e
+            .toString()
+            .replaceFirst('Exception: ', '')
+            .replaceFirst('StateError: ', ''),
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 4),
+      );
+    } finally {
+      isDeletingAccount.value = false;
+    }
+  }
+
 }

@@ -122,4 +122,11 @@ class AdFreeService extends GetxController {
       Get.snackbar('복원 실패', '구매 복원 중 오류가 발생했습니다.');
     }
   }
+
+  // 광고 제거 상태 초기화 (회원탈퇴 시 호출)
+  void reset() {
+    _isAdFree.value = false;
+    update();
+    debugPrint('AdFreeService 상태 리셋 완료: 광고 표시로 복귀');
+  }
 }

@@ -1,10 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'dart:async';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 import 'supabase_service.dart';
 import 'firebase_service.dart';
+import 'qonversion_service.dart';
+import 'adfree_service.dart';
 
 class AuthService extends GetxService {
   final SupabaseService _supabaseProvider = Get.find<SupabaseService>();
@@ -83,8 +87,8 @@ class AuthService extends GetxService {
     if (error is GoogleSignInException) {
       if (error.code != GoogleSignInExceptionCode.canceled) {
         // Ignore cancellation, log other errors
-        // ignore: avoid_print
-        print('Google Sign-In error: ${error.code} - ${error.description}');
+        debugPrint(
+            'Google Sign-In error: ${error.code} - ${error.description}');
       }
     }
   }
@@ -108,8 +112,7 @@ class AuthService extends GetxService {
       isLoggedIn.value = false;
       return false;
     } catch (e) {
-      // ignore: avoid_print
-      print('No active session: $e');
+      debugPrint('No active session: $e');
       userEmail.value = '';
       userId.value = '';
       isLoggedIn.value = false;
@@ -138,8 +141,7 @@ class AuthService extends GetxService {
       final GoogleSignInAuthentication googleAuth = googleUser.authentication;
 
       if (googleAuth.idToken == null) {
-        // ignore: avoid_print
-        print('Google ID 토큰을 가져올 수 없습니다');
+        debugPrint('Google ID 토큰을 가져올 수 없습니다');
         onLoginFailed();
         _pendingLoginSuccess = null;
         return false;
@@ -171,11 +173,9 @@ class AuthService extends GetxService {
       // 7.x: Exceptions are thrown for cancellation and other failures
       if (e.code == GoogleSignInExceptionCode.canceled) {
         // 사용자가 로그인을 취소함
-        // ignore: avoid_print
-        print('Google 로그인이 취소되었습니다');
+        debugPrint('Google 로그인이 취소되었습니다');
       } else {
-        // ignore: avoid_print
-        print('Google Sign-In 실패: ${e.code} - ${e.description}');
+        debugPrint('Google Sign-In 실패: ${e.code} - ${e.description}');
         Get.snackbar(
           '로그인 실패',
           '로그인에 실패했습니다. 다시 시도해주세요.',
@@ -186,8 +186,7 @@ class AuthService extends GetxService {
       _pendingLoginSuccess = null;
       return false;
     } catch (e) {
-      // ignore: avoid_print
-      print('Login failed: $e');
+      debugPrint('Login failed: $e');
       onLoginFailed();
       _pendingLoginSuccess = null;
 
@@ -226,9 +225,95 @@ class AuthService extends GetxService {
 
       return true;
     } catch (e) {
-      // ignore: avoid_print
-      print('Logout error: $e');
+      debugPrint('Logout error: $e');
       return false;
+    }
+  }
+
+  // 사용자 회원탈퇴 처리
+  Future<bool> deleteAccount() async {
+    try {
+      final currentUserId = userId.value;
+      if (currentUserId.isEmpty) {
+        throw StateError('로그인된 계정 정보를 찾을 수 없습니다.');
+      }
+
+      // 1. FCM 토큰 삭제 (DB 및 로컬)
+      try {
+        await _firebaseProvider.removeFcmToken(currentUserId);
+      } catch (e) {
+        debugPrint('FCM 토큰 정리 중 오류 (계속 진행): $e');
+      }
+
+      // 2. Supabase Edge Function 'delete-account' 호출
+      try {
+        final response = await _supabaseProvider.client.functions.invoke(
+          'delete-account',
+        );
+
+        final data = response.data as Map<String, dynamic>?;
+        if (data != null && data['success'] != true) {
+          final error = data['error'] ?? '알 수 없는 오류가 발생했습니다.';
+          throw StateError(error.toString());
+        }
+      } on FunctionException catch (e) {
+        final details = e.details;
+        if (details is Map && details['error'] != null) {
+          throw StateError(details['error'].toString());
+        }
+        throw StateError(
+            '회원탈퇴 처리 실패 (${e.status}): ${e.reasonPhrase ?? e.toString()}');
+      }
+
+      // 3. Google Sign-In 연동 해제 (disconnect로 앱 연동 권한 완전 철회)
+      try {
+        await GoogleSignIn.instance.disconnect();
+        debugPrint('Google Sign-In 연동 해제(disconnect) 완료');
+      } catch (e) {
+        debugPrint(
+            'Google Sign-In disconnect error (falling back to signOut): $e');
+        try {
+          await GoogleSignIn.instance.signOut();
+        } catch (signOutError) {
+          debugPrint('Google Sign-In signOut error: $signOutError');
+        }
+      }
+
+      // 4. Supabase 로컬 세션 종료
+      try {
+        await _supabaseProvider.client.auth.signOut();
+      } catch (e) {
+        debugPrint('Supabase signOut error: $e');
+      }
+
+      // 5. Qonversion 및 광고 제거 상태 초기화
+      try {
+        if (Get.isRegistered<QonversionService>()) {
+          await Get.find<QonversionService>().resetUser();
+        }
+        if (Get.isRegistered<AdFreeService>()) {
+          Get.find<AdFreeService>().reset();
+        }
+      } catch (e) {
+        debugPrint('Qonversion/AdFreeService reset error: $e');
+      }
+
+      // 6. Crashlytics 사용자 식별자 초기화
+      try {
+        await FirebaseCrashlytics.instance.setUserIdentifier('');
+      } catch (e) {
+        debugPrint('Crashlytics identifier reset error: $e');
+      }
+
+      // 7. 상태 초기화
+      userEmail.value = '';
+      userId.value = '';
+      isLoggedIn.value = false;
+
+      return true;
+    } catch (e) {
+      debugPrint('Delete account error: $e');
+      rethrow;
     }
   }
 }
