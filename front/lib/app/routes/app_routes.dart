@@ -1,8 +1,8 @@
 abstract class Routes {
-  static const HOME = '/home';
-  static const LOGIN = '/login';
-  static const POSTS = '/posts';
-  static const SUBSCRIPTION = '/subscription';
-  static const SETTINGS = '/settings';
-  static const WEBVIEW = '/webview';
+  static const home = '/home';
+  static const login = '/login';
+  static const posts = '/posts';
+  static const subscription = '/subscription';
+  static const settings = '/settings';
+  static const webview = '/webview';
 }

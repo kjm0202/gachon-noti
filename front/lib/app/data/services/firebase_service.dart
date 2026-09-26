@@ -42,7 +42,7 @@ class FirebaseService {
     try {
       if (userId == null || userId.isEmpty) return null;
       await _localNotifications.initialize(
-        const InitializationSettings(
+        settings: const InitializationSettings(
           android: AndroidInitializationSettings('@mipmap/ic_launcher'),
           iOS: DarwinInitializationSettings(),
         ),
@@ -109,12 +109,12 @@ class FirebaseService {
     try {
       final content = NotificationUtils.createNotificationContent(message.data);
       await _localNotifications.show(
-        NotificationUtils.generateUniqueNotificationId(
+        id: NotificationUtils.generateUniqueNotificationId(
           message.data['postId'] ?? message.messageId ?? '',
         ),
-        content['title'],
-        content['body'],
-        NotificationUtils.notificationDetails,
+        title: content['title'],
+        body: content['body'],
+        notificationDetails: NotificationUtils.notificationDetails,
         payload: NotificationUtils.extractUrlFromMessage(message),
       );
     } catch (error) {

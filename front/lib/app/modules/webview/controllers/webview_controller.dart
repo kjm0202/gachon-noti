@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -29,7 +30,7 @@ class WebViewController2 extends GetxController {
           },
           onWebResourceError: (error) {
             isLoading.value = false;
-            print('웹뷰 오류: ${error.description}');
+            debugPrint('웹뷰 오류: ${error.description}');
           },
         ),
       )

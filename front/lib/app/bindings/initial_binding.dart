@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import '../modules/posts/controllers/posts_controller.dart';
 import '../modules/subscription/controllers/subscription_controller.dart';

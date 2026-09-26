@@ -51,7 +51,7 @@ class _HomeViewState extends State<HomeView> {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false, // 시스템의 뒤로가기 동작을 막습니다.
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (didPop, result) async {
         if (didPop) {
           return;
         }
@@ -142,7 +142,7 @@ class _HomeViewState extends State<HomeView> {
                       border: Border(
                         top: BorderSide(
                           color:
-                              Theme.of(context).dividerColor.withOpacity(0.3),
+                              Theme.of(context).dividerColor.withValues(alpha: 0.3),
                           width: 0.5,
                         ),
                       ),
@@ -202,7 +202,7 @@ class _HomeViewState extends State<HomeView> {
                           width: 0.5,
                           height: 32,
                           color:
-                              Theme.of(context).dividerColor.withOpacity(0.3),
+                              Theme.of(context).dividerColor.withValues(alpha: 0.3),
                         ),
                         Expanded(
                           child: Material(

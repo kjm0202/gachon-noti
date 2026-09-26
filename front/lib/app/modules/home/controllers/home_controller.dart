@@ -61,7 +61,7 @@ class HomeController extends GetxController {
       final needsUpdate = await VersionChecker.needsUpdate();
       updateAvailable.value = needsUpdate;
     } catch (e) {
-      print('업데이트 확인 중 오류 발생: $e');
+      debugPrint('업데이트 확인 중 오류 발생: $e');
     }
   }
 
@@ -86,7 +86,7 @@ class HomeController extends GetxController {
     await _firebaseProvider.initFCM(
       userId: _authProvider.userId.value,
       onTokenRefresh: (token) {
-        print('FCM 토큰 갱신 완료');
+        debugPrint('FCM 토큰 갱신 완료');
       },
       showInAppNotification: _showInAppNotification,
       handleNotificationClick: _handleNotificationClick,
@@ -96,27 +96,27 @@ class HomeController extends GetxController {
 
   void _showInAppNotification(RemoteMessage message) {
     final data = message.data;
-    print("_showInAppNotification: $data");
+    debugPrint("_showInAppNotification: $data");
 
     if (data.isNotEmpty) {
       final String postLink = data['postLink'] ?? '';
       final String title = '[${data['boardName'] ?? '알림'}] 새 공지';
 
-      print("URL 설정: $postLink");
+      debugPrint("URL 설정: $postLink");
 
       // 네이티브에서는 FirebaseProvider에서 로컬 알림으로 처리
       // 여기서는 추가 처리가 필요한 경우에만 snackbar 표시
-      print('네이티브 앱에서 포그라운드 알림 수신: $title');
+      debugPrint('네이티브 앱에서 포그라운드 알림 수신: $title');
     }
   }
 
   void _handleNotificationClick(RemoteMessage message) {
-    print('handleNotificationClick');
+    debugPrint('handleNotificationClick');
     final data = message.data;
     final String? postLink = data['postLink'];
 
     if (postLink != null && postLink.isNotEmpty) {
-      Get.toNamed(Routes.WEBVIEW, arguments: postLink);
+      Get.toNamed(Routes.webview, arguments: postLink);
     }
   }
 
@@ -169,12 +169,12 @@ class HomeController extends GetxController {
       // AuthProvider에 통합된 로그아웃 로직 호출
       final result = await _authProvider.logout();
       if (result) {
-        Get.offAllNamed(Routes.LOGIN);
+        Get.offAllNamed(Routes.login);
       }
 
       return result;
     } catch (e) {
-      print('로그아웃 처리 오류: $e');
+      debugPrint('로그아웃 처리 오류: $e');
       return false;
     } finally {
       // 로그아웃 완료 (성공 또는 실패)

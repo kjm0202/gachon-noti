@@ -34,11 +34,11 @@ class AdMobBannerWidget extends StatelessWidget {
     if (Get.isRegistered<AdFreeService>()) {
       return Obx(() {
         final adFreeService = Get.find<AdFreeService>();
-        print(
+        debugPrint(
             'AdMobBannerWidget: shouldShowAds = ${adFreeService.shouldShowAds()}');
 
         if (!adFreeService.shouldShowAds()) {
-          print('AdMobBannerWidget: 광고 제거 상태 - 배너 숨김');
+          debugPrint('AdMobBannerWidget: 광고 제거 상태 - 배너 숨김');
           return const SizedBox.shrink();
         }
 
@@ -64,7 +64,6 @@ class AdMobBannerWidget extends StatelessWidget {
           bannerAd = adMobService.settingsBannerAd;
           break;
         case AdMobBannerType.home:
-        default:
           isAdReady = adMobService.isBannerAdReady;
           bannerAd = adMobService.bannerAd;
           break;
@@ -83,11 +82,11 @@ class AdMobBannerWidget extends StatelessWidget {
           color: Theme.of(context).colorScheme.surfaceContainer,
           border: Border(
             top: BorderSide(
-              color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
               width: 0.5,
             ),
             bottom: BorderSide(
-              color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
               width: 0.5,
             ),
           ),
@@ -115,11 +114,11 @@ class AdMobMediumRectangleBannerWidget extends StatelessWidget {
     if (Get.isRegistered<AdFreeService>()) {
       return Obx(() {
         final adFreeService = Get.find<AdFreeService>();
-        print(
+        debugPrint(
             'AdMobMediumRectangleBannerWidget: shouldShowAds = ${adFreeService.shouldShowAds()}');
 
         if (!adFreeService.shouldShowAds()) {
-          print('AdMobMediumRectangleBannerWidget: 광고 제거 상태 - 배너 숨김');
+          debugPrint('AdMobMediumRectangleBannerWidget: 광고 제거 상태 - 배너 숨김');
           return const SizedBox.shrink();
         }
 
@@ -150,7 +149,7 @@ class AdMobMediumRectangleBannerWidget extends StatelessWidget {
           color: Theme.of(context).colorScheme.surfaceContainer,
           borderRadius: BorderRadius.circular(8.0),
           border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
             width: 0.5,
           ),
         ),

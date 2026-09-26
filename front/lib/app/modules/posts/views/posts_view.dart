@@ -89,7 +89,7 @@ class PostsView extends GetView<PostsController> {
             fillColor: Theme.of(Get.context!)
                 .colorScheme
                 .surfaceContainerHighest
-                .withOpacity(0.5),
+                .withValues(alpha: 0.5),
             contentPadding: const EdgeInsets.symmetric(vertical: 0),
           ),
           textInputAction: TextInputAction.search,

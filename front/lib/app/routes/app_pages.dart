@@ -15,36 +15,36 @@ import '../modules/webview/views/webview_view.dart';
 import 'app_routes.dart';
 
 class AppPages {
-  static const INITIAL = Routes.LOGIN;
+  static const initial = Routes.login;
 
   static final routes = [
     GetPage(
-      name: Routes.HOME,
+      name: Routes.home,
       page: () => const HomeView(),
       binding: HomeBinding(),
     ),
     GetPage(
-      name: Routes.LOGIN,
+      name: Routes.login,
       page: () => const LoginView(),
       binding: LoginBinding(),
     ),
     GetPage(
-      name: Routes.POSTS,
+      name: Routes.posts,
       page: () => const PostsView(),
       binding: PostsBinding(),
     ),
     GetPage(
-      name: Routes.SUBSCRIPTION,
+      name: Routes.subscription,
       page: () => const SubscriptionView(),
       binding: SubscriptionBinding(),
     ),
     GetPage(
-      name: Routes.SETTINGS,
+      name: Routes.settings,
       page: () => const SettingsView(),
       binding: SettingsBinding(),
     ),
     GetPage(
-      name: Routes.WEBVIEW,
+      name: Routes.webview,
       page: () => const WebviewView(),
       binding: WebviewBinding(),
     ),

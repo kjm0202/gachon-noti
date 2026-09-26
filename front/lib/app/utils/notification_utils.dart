@@ -103,8 +103,8 @@ class NotificationUtils {
     await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform);
 
-    print("Handling a background message: ${message.messageId}");
-    print("Message data: ${message.data}");
+    debugPrint("Handling a background message: ${message.messageId}");
+    debugPrint("Message data: ${message.data}");
 
     // 백그라운드에서 로컬 알림 표시
     await showBackgroundNotification(message);
@@ -122,7 +122,7 @@ class NotificationUtils {
         iOS: iosSettings,
       );
 
-      await _backgroundLocalNotifications.initialize(initSettings);
+      await _backgroundLocalNotifications.initialize(settings: initSettings);
 
       // Android 알림 채널 생성 (필수)
       await _backgroundLocalNotifications
@@ -140,16 +140,16 @@ class NotificationUtils {
 
       // 알림 표시 (고유 ID 사용)
       await _backgroundLocalNotifications.show(
-        notificationId,
-        content['title']!,
-        content['body']!,
-        notificationDetails,
+        id: notificationId,
+        title: content['title']!,
+        body: content['body']!,
+        notificationDetails: notificationDetails,
         payload: payload,
       );
 
-      print('백그라운드 알림 표시 완료: ${content['title']} (ID: $notificationId)');
+      debugPrint('백그라운드 알림 표시 완료: ${content['title']} (ID: $notificationId)');
     } catch (e) {
-      print('백그라운드 알림 표시 오류: $e');
+      debugPrint('백그라운드 알림 표시 오류: $e');
     }
   }
 }

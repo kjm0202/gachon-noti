@@ -79,7 +79,9 @@ class PostsController extends GetxController {
               .maybeSingle();
       if (isClosed ||
           version != _subscriptionVersion ||
-          _supabaseProvider.client.auth.currentUser?.id != user?.id) return;
+          _supabaseProvider.client.auth.currentUser?.id != user?.id) {
+        return;
+      }
       subscribedBoards.assignAll(List<String>.from(row?['boards'] ?? []));
     } catch (error) {
       if (!isClosed && version == _subscriptionVersion) {
@@ -187,8 +189,9 @@ class PostsController extends GetxController {
     if (isClosed) return;
     _cache.clear();
     _cacheTimes.clear();
-    if (!subscribedBoards.contains(selectedTagFilter.value))
+    if (!subscribedBoards.contains(selectedTagFilter.value)) {
       selectedTagFilter.value = 'all';
+    }
     resetPagination();
     await fetchPosts(useCache: false, forceRefresh: true);
   }
@@ -258,7 +261,7 @@ class PostsController extends GetxController {
       final boardsField = response['boards'];
       return boardsField != null ? List<String>.from(boardsField) : [];
     } catch (e) {
-      print('Error fetching user subscriptions: $e');
+      debugPrint('Error fetching user subscriptions: $e');
       return [];
     }
   }
@@ -278,7 +281,7 @@ class PostsController extends GetxController {
       return;
     }
 
-    await Get.toNamed(Routes.WEBVIEW, arguments: url);
+    await Get.toNamed(Routes.webview, arguments: url);
   }
 
   // 날짜 포맷팅 함수

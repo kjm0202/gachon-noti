@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:http/http.dart' as http;
 
@@ -17,12 +18,12 @@ class VersionChecker {
       // 깃허브의 최신 버전 가져오기
       final latestVersion = await _getLatestVersion();
 
-      print('현재 버전: $currentVersion, 최신 버전: $latestVersion');
+      debugPrint('현재 버전: $currentVersion, 최신 버전: $latestVersion');
 
       // 버전 비교
       return _isVersionLower(currentVersion, latestVersion);
     } catch (e) {
-      print('버전 확인 중 오류 발생: $e');
+      debugPrint('버전 확인 중 오류 발생: $e');
       return false; // 오류 발생 시 업데이트 필요 없음으로 처리
     }
   }

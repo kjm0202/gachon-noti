@@ -20,7 +20,7 @@ class LoginController extends GetxController {
       await _authProvider.loginWithGoogle(
         onLoginSuccess: () {
           isLoading.value = false;
-          Get.offAllNamed(Routes.HOME); // 상수 사용
+          Get.offAllNamed(Routes.home); // 상수 사용
         },
         onLoginFailed: () {
           isLoading.value = false;

@@ -96,7 +96,7 @@ class _AdmobWebviewBanner extends StatelessWidget {
           border: Border(
             top: BorderSide(
               color:
-                  Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                  Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
               width: 0.5,
             ),
           ),

@@ -11,7 +11,7 @@ class UrlLauncherUtils {
       // 네이티브에서는 url_launcher 사용 (Chrome Custom Tab 우선)
       await _launchUrlNative(url);
     } catch (e) {
-      print('URL 열기 실패: $e');
+      debugPrint('URL 열기 실패: $e');
       _showErrorDialog(url);
     }
   }

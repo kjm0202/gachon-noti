@@ -44,7 +44,7 @@ void main() async {
   // Supabase 초기화
   await Supabase.initialize(
     url: API.supabaseUrl,
-    anonKey: API.supabaseAnonKey,
+    publishableKey: API.supabaseAnonKey,
   );
 
   // 앱이 종료된 상태에서 알림 탭으로 열렸는지 확인
@@ -61,7 +61,7 @@ Future<void> _checkInitialNotification() async {
     if (initialMessage != null) {
       final url = initialMessage.data['postLink'];
       if (url != null && url.isNotEmpty) {
-        print('🎯 FCM 초기 알림 URL 저장: $url');
+        debugPrint('🎯 FCM 초기 알림 URL 저장: $url');
         _pendingNotificationUrl = url;
         return;
       }
@@ -73,19 +73,19 @@ Future<void> _checkInitialNotification() async {
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
       iOS: DarwinInitializationSettings(),
     );
-    await localNotifications.initialize(initSettings);
+    await localNotifications.initialize(settings: initSettings);
 
     final launchDetails =
         await localNotifications.getNotificationAppLaunchDetails();
     if (launchDetails?.didNotificationLaunchApp == true) {
       final payload = launchDetails?.notificationResponse?.payload;
       if (payload != null && payload.isNotEmpty) {
-        print('🎯 로컬 알림 URL 저장: $payload');
+        debugPrint('🎯 로컬 알림 URL 저장: $payload');
         _pendingNotificationUrl = payload;
       }
     }
   } catch (e) {
-    print('❌ 초기 알림 확인 오류: $e');
+    debugPrint('❌ 초기 알림 확인 오류: $e');
   }
 }
 
@@ -119,7 +119,7 @@ class _MyAppState extends State<MyApp> {
             onReady: () {
               final url = _pendingNotificationUrl;
               _pendingNotificationUrl = null;
-              if (url != null) Get.toNamed(Routes.WEBVIEW, arguments: url);
+              if (url != null) Get.toNamed(Routes.webview, arguments: url);
             },
             getPages: AppPages.routes,
             defaultTransition: Transition.fade,
@@ -158,6 +158,6 @@ class _MyAppState extends State<MyApp> {
     // 로그인 상태 확인
     final isLoggedIn = await authProvider.checkCurrentSession();
 
-    return isLoggedIn ? Routes.HOME : Routes.LOGIN;
+    return isLoggedIn ? Routes.home : Routes.login;
   }
 }
