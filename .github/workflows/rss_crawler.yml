@@ -5,31 +5,33 @@ on:
     - cron: "*/5 * * * *"  # 5분 간격
   workflow_dispatch:        # 수동 실행도 허용
 
+permissions:
+  contents: read
+
+concurrency:
+  group: rss-crawler
+  cancel-in-progress: false
+
 jobs:
   rss-crawl:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
-
-      - name: Cache npm dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.npm
-            node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+          node-version: 22
+          cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Verify crawler
+        run: npm test
 
       - name: Run crawler script
         env:
