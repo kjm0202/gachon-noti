@@ -14,6 +14,10 @@ create table public.fcm_topic_memberships (
   board_id text not null,
   primary key (fcm_token, board_id)
 );
+-- Existing installations can apply just this additive change before upgrading the crawler.
+alter table public.fcm_topic_memberships
+  add column if not exists pending boolean not null default false;
+
 create table public.crawler_leases (
   name text primary key,
   owner uuid not null,

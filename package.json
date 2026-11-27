@@ -4,11 +4,11 @@
     "type": "module",
     "scripts": {
         "start": "node index.js",
-        "test": "node --test"
+        "test": "node --test test/*.test.js"
     },
     "dependencies": {
         "@supabase/supabase-js": "2.117.0",
-        "fast-xml-parser": "5.11.1",
+        "fast-xml-parser": "5.12.1",
         "firebase-admin": "14.4.0"
     },
     "engines": {
