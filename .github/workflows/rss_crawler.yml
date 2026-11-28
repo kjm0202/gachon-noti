@@ -16,6 +16,8 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      TS_EXIT_NODE: galaxy-s10e
 
     steps:
       - name: Checkout repository
@@ -39,7 +41,25 @@ jobs:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           audience: ${{ secrets.TS_AUDIENCE }}
           tags: tag:gachon-noti
-          ping: galaxy-s10e
+          ping: ${{ env.TS_EXIT_NODE }}
+
+      - name: Route traffic through the Tailscale exit node
+        run: |
+          direct_ip="$(curl -fsS --max-time 10 https://api.ipify.org)"
+          sudo tailscale set --exit-node="$TS_EXIT_NODE"
+
+          for attempt in $(seq 1 10); do
+            exit_ip="$(curl -fsS --max-time 10 https://api.ipify.org || true)"
+            if [ -n "$exit_ip" ] && [ "$exit_ip" != "$direct_ip" ]; then
+              echo "Egress moved from the runner to $TS_EXIT_NODE (attempt $attempt)"
+              exit 0
+            fi
+            sleep 3
+          done
+
+          tailscale status || true
+          echo "::error::Traffic is not leaving through exit node $TS_EXIT_NODE. Check that it advertises an exit node, the route is approved, and the policy grants tag:gachon-noti access to autogroup:internet."
+          exit 1
 
       - name: Run crawler script
         env:
