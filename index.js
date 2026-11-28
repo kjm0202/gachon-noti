@@ -2,7 +2,15 @@ import { randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
+import { ProxyAgent, fetch as proxiedFetch } from 'undici';
 import { runCrawler } from './src/crawler.js';
+
+// Only school RSS requests use RSS_PROXY_URL; Supabase and Firebase stay on the runner's own network.
+function rssFetcher() {
+  if (!process.env.RSS_PROXY_URL) return undefined;
+  const dispatcher = new ProxyAgent(process.env.RSS_PROXY_URL);
+  return (url, options = {}) => proxiedFetch(url, { ...options, dispatcher });
+}
 
 async function main() {
   for (const key of ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'FIREBASE_PROJECT_ID', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_PRIVATE_KEY']) {
@@ -24,7 +32,7 @@ async function main() {
     const { data, error } = await supabase.rpc('acquire_crawler_lease', { p_owner: owner });
     if (error) throw error;
     if (!data) { console.log('Another crawler holds the lease'); return; }
-    try { await runCrawler(supabase, getMessaging()); }
+    try { await runCrawler(supabase, getMessaging(), rssFetcher()); }
     finally {
       const { error } = await supabase.from('crawler_leases').delete().eq('owner', owner);
       if (error) throw error;
