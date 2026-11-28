@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import { RSS_FEEDS } from '../rss-feeds.js';
@@ -40,11 +39,6 @@ export function parseFeed(xml) {
   const items = parsed.rss.channel.item;
   return items ? (Array.isArray(items) ? items : [items]) : [];
 }
-
-// All configured feeds share the school's origin. Keep this lease separate from
-// the running job's lease so collection can pause while the outbox keeps draining.
-const cooldownLease = 'rss-feed-cooldown';
-const cooldownMs = 30 * 60_000;
 
 async function fetchFeed(fetcher, feed, attempt) {
   const started = Date.now();
@@ -188,13 +182,6 @@ async function enqueueItems(db, feed, items) {
 }
 
 export async function crawlFeeds(db, fetcher = fetch, feeds = RSS_FEEDS) {
-  const cooldown = check(await db.from('crawler_leases').select('expires_at')
-    .eq('name', cooldownLease).maybeSingle());
-  if (cooldown && Date.parse(cooldown.expires_at) > Date.now()) {
-    console.warn(`RSS collection deferred until ${cooldown.expires_at}; parsed 0/${feeds.length} boards`);
-    return null;
-  }
-
   let parsed = 0, postFailures = 0, retryFeed;
   async function collect(feed, attempt) {
     const { items, retryable } = await fetchFeed(fetcher, feed, attempt);
@@ -213,11 +200,6 @@ export async function crawlFeeds(db, fetcher = fetch, feeds = RSS_FEEDS) {
     await collect(retryFeed, 2);
   }
   console.log(`RSS parsed ${parsed}/${feeds.length} boards; ${postFailures} post errors`);
-  if (feeds.length && parsed === 0) {
-    const expiresAt = new Date(Date.now() + cooldownMs).toISOString();
-    check(await db.from('crawler_leases').upsert({ name: cooldownLease, owner: randomUUID(), expires_at: expiresAt }));
-    console.warn(`All RSS feeds failed; next collection at or after ${expiresAt}`);
-  }
   return feeds.length - parsed + postFailures;
 }
 
@@ -302,8 +284,7 @@ export async function runCrawler(db, messaging) {
   const failedBoards = await syncTopics(db, messaging);
   const deliveryFailures = await deliverPending(db, messaging, failedBoards);
   if (failures !== 0 || failedBoards.size || deliveryFailures) {
-    const collection = failures === null ? 'collection deferred' : `${failures} collection`;
-    throw new Error(`${collection}, ${[...failedBoards].join(', ') || 'no'} topic sync, ${deliveryFailures} delivery errors`);
+    throw new Error(`${failures} collection, ${[...failedBoards].join(', ') || 'no'} topic sync, ${deliveryFailures} delivery errors`);
   }
   console.log('RSS collection, topic sync and delivery complete');
 }
