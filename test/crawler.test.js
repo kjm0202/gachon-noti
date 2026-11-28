@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { crawlFeeds, deliverPending, parseFeed, parsePubDate, syncTopics, readAll } from '../src/crawler.js';
+import { crawlFeeds, deliverPending, parseFeed, parsePubDate, syncTopics, readAll, runCrawler } from '../src/crawler.js';
 
 // Backend-only tests: no mobile interactions, production writes, or FCM sends.
 function database(tables = {}, beforeWrite = () => {}) {
@@ -8,13 +8,14 @@ function database(tables = {}, beforeWrite = () => {}) {
     tables,
     from(name) {
       const filters = [];
-      let action = 'select', values, limit, range;
+      let action = 'select', values, limit, range, single;
       const query = {
         select() { return this; }, order() { return this; },
         eq(k, v) { filters.push(r => r[k] === v); return this; },
         is(k, v) { filters.push(r => r[k] === v); return this; },
         lte(k, v) { filters.push(r => r[k] <= v); return this; },
         in(k, v) { filters.push(r => v.includes(k === 'posts.board_id' ? r.posts.board_id : r[k])); return this; },
+        maybeSingle() { single = true; return this; },
         limit(n) { limit = n; return this; },
         range(a, b) { range = [a, b]; return this; },
         update(v) { action = 'update'; values = v; return this; },
@@ -27,14 +28,15 @@ function database(tables = {}, beforeWrite = () => {}) {
             if (action !== 'select') beforeWrite(name, action, values, matched);
             if (action === 'delete') tables[name] = rows.filter(r => !matched.includes(r));
             if (action === 'update') matched.forEach(r => Object.assign(r, values));
-            if (action === 'upsert') for (const row of values) {
-              const existing = rows.find(r => r.board_id === row.board_id && r.fcm_token === row.fcm_token);
+            if (action === 'upsert') for (const row of [].concat(values)) {
+              const existing = rows.find(r => name === 'crawler_leases' ? r.name === row.name :
+                r.board_id === row.board_id && r.fcm_token === row.fcm_token);
               if (existing) Object.assign(existing, row);
               else rows.push(row);
             }
             if (range) matched = matched.slice(range[0], range[1] + 1);
             if (limit) matched = matched.slice(0, limit);
-            return { data: matched, error: null };
+            return { data: single ? matched[0] ?? null : matched, error: null };
           }).then(resolve, reject);
         },
       };
@@ -59,7 +61,7 @@ test('RSS accepts zero/one items and rejects HTML and malformed XML', () => {
 
 test('existing/pinned item does not hide later new items; one bad item does not stop the feed', async () => {
   const links = [];
-  const db = { rpc: async (_, { p_post }) => {
+  const db = { ...database(), rpc: async (_, { p_post }) => {
     links.push(p_post.link);
     return { data: links.length === 1 ? null : 2, error: null };
   } };
@@ -69,23 +71,76 @@ test('existing/pinned item does not hide later new items; one bad item does not 
   assert.deepEqual(links, ['https://www.gachon.ac.kr/old', 'https://www.gachon.ac.kr/new']);
 });
 
-test('transient HTTP failures are retried and later feeds are still processed', async () => {
-  let calls = 0;
-  assert.equal(await crawlFeeds({}, async () => {
-    calls++; return { ok: false, status: 503 };
-  }, [{ boardId: 'bachelor' }, { boardId: 'job' }]), 2);
-  assert.equal(calls, 6);
+const emptyFeed = '<rss><channel><title>Empty</title></channel></rss>';
+const feeds = ['bachelor', 'job', 'student'].map(boardId => ({boardId, url: boardId}));
+
+test('one shared retry follows healthy RSS, without retrying healthy or other failing boards', async () => {
+  const calls = [];
+  const fetcher = async board => {
+    calls.push(board);
+    if (board === 'bachelor' && calls.length === 1) throw new TypeError('fetch failed');
+    if (board === 'job') return new Response('busy', {status: 503});
+    return new Response(emptyFeed);
+  };
+  const db = database();
+  assert.equal(await crawlFeeds(db, fetcher, feeds), 1);
+  assert.deepEqual(calls, ['bachelor', 'job', 'student', 'bachelor']);
+  assert.equal(db.tables.crawler_leases.length, 0);
 });
 
-test('network fetch errors are retried before counting a feed failure', async () => {
-  let calls = 0;
-  const xml = '<rss><channel><title>Empty</title></channel></rss>';
-  assert.equal(await crawlFeeds({}, async () => {
-    calls++;
-    if (calls === 1) throw new TypeError('fetch failed');
-    return { ok: true, text: async () => xml };
-  }, [{ boardId: 'bachelor', url: 'test' }]), 0);
-  assert.equal(calls, 2);
+test('logs firewall HTML, HTTP errors, transport causes and invalid XML without storing response bodies', async t => {
+  const log = t.mock.method(console, 'error', () => {});
+  const message = 'The request / response that are contrary to the Web firewall security policies have been blocked.';
+  const simulated = [
+    () => new Response('<br><h2>' + message + '</h2><td>private-ip</td>', {headers: {'Content-Type': 'text/html'}}),
+    () => new Response('missing', {status: 404}),
+    () => { throw new TypeError('fetch failed', {cause: {code: 'UND_ERR_CONNECT_TIMEOUT'}}); },
+    () => new Response('<rss>'),
+  ];
+  const db = database();
+  const boards = simulated.map((_, i) => ({ boardId: String(i), url: i }));
+  assert.equal(await crawlFeeds(db, i => simulated[i](), boards), 4);
+  const records = log.mock.calls.map(({arguments: [, json]}) => JSON.parse(json));
+  assert.deepEqual(records.map(x => x.outcome), ['firewall_block', 'http_error', 'timeout', 'invalid_rss']);
+  assert.deepEqual(records.map(x => x.status), [200, 404, null, 200]);
+  assert.equal(records[0].contentType, 'text/html');
+  assert.equal(records[2].causeCode, 'UND_ERR_CONNECT_TIMEOUT');
+  assert.ok(records.every((r, i) => r.board === String(i) && r.elapsedMs >= 0 && r.attempt === 1));
+  assert.ok(!JSON.stringify(records).includes('private-ip'));
+});
+
+test('persistent HTTP and firewall responses are never retried when a peer succeeds', async () => {
+  const calls = [];
+  const responses = [new Response('<br>contrary to the Web firewall security policies have been blocked', {status: 503}),
+    new Response('', {status: 404}), new Response('', {status: 429}), new Response('', {status: 503, headers: {'Retry-After': '300'}}),
+    new Response(emptyFeed)];
+  const boards = responses.map((_, url) => ({boardId: String(url), url}));
+  assert.equal(await crawlFeeds(database(), url => { calls.push(url); return responses[url]; }, boards), 4);
+  assert.deepEqual(calls, [0, 1, 2, 3, 4]);
+});
+
+test('host outage pauses only collection across runs; all boards are parsed after cooldown expiry', async t => {
+  const now = Date.now();
+  t.mock.timers.enable({apis: ['Date'], now});
+  const db = database({ crawler_leases: [{name: 'rss', owner: 'active'}],
+    notification_outbox: [{post_id: 7, attempts: 0, next_attempt_at: '2000-01-01', sent_at: null,
+      posts: {board_id: 'job', title: 'Queued', link: 'https://www.gachon.ac.kr/'}}] });
+  const fetch = t.mock.method(globalThis, 'fetch', () => { throw new TypeError('fetch failed'); });
+  const sendEach = t.mock.fn(async () => ({ responses: [{ success: true }] }));
+  await assert.rejects(runCrawler(db, {sendEach}), /8 collection/);
+  assert.equal(fetch.mock.callCount(), 8);
+  const cooldown = db.tables.crawler_leases.find(r => r.name === 'rss-feed-cooldown');
+  assert.equal(Date.parse(cooldown.expires_at), now + 30 * 60_000);
+  assert.equal(db.tables.crawler_leases[0].owner, 'active');
+  db.tables.notification_outbox.push({...db.tables.notification_outbox[0], post_id: 8, sent_at: null});
+  t.mock.timers.tick(10 * 60_000);
+  await assert.rejects(runCrawler(db, {sendEach}), /collection deferred/);
+  assert.equal(fetch.mock.callCount(), 8);
+  assert.equal(sendEach.mock.callCount(), 2);
+  t.mock.timers.tick(20 * 60_000);
+  fetch.mock.mockImplementation(() => new Response(emptyFeed));
+  await runCrawler(db, {sendEach});
+  assert.equal(fetch.mock.callCount(), 16);
 });
 
 test('failed send remains pending; retry sends only the failed post', async () => {
@@ -198,7 +253,7 @@ test('crawler stores only HTTPS notices from the school origin', async () => {
   const links = ['https://example.org/a', 'http://www.gachon.ac.kr/a', 'https://www.gachon.ac.kr/good'];
   const xml = '<rss><channel>' + links.map(link => `<item><title>A</title><link>${link}</link></item>`).join('') + '</channel></rss>';
   const stored = [];
-  const db = {rpc: async (_, {p_post}) => { stored.push(p_post.link); return {data: 1}; }};
+  const db = {...database(), rpc: async (_, {p_post}) => { stored.push(p_post.link); return {data: 1}; }};
   assert.equal(await crawlFeeds(db, async () => ({ok: true, text: async () => xml}), [{boardId: 'job'}]), 2);
   assert.deepEqual(stored, links.slice(-1));
 });
