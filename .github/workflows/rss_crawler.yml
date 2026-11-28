@@ -5,6 +5,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
   group: rss-crawler
@@ -31,6 +32,14 @@ jobs:
 
       - name: Verify crawler
         run: npm test
+
+      - name: Connect to Tailscale with GitHub OIDC
+        uses: tailscale/github-action@064b10558093f38325e838ddea35486bdc6b1d5c # v4.4.0
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TS_AUDIENCE }}
+          tags: tag:gachon-noti
+          ping: galaxy-s10e
 
       - name: Run crawler script
         env:
