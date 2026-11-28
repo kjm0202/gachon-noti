@@ -278,8 +278,8 @@ export async function deliverPending(db, messaging, failedBoards = new Set()) {
   return failures;
 }
 
-export async function runCrawler(db, messaging) {
-  const failures = await crawlFeeds(db);
+export async function runCrawler(db, messaging, fetcher) {
+  const failures = await crawlFeeds(db, fetcher);
   // Do not send to a partially reconciled audience. Pending posts remain durable.
   const failedBoards = await syncTopics(db, messaging);
   const deliveryFailures = await deliverPending(db, messaging, failedBoards);
