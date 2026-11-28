@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import { RSS_FEEDS } from '../rss-feeds.js';
@@ -38,6 +39,50 @@ export function parseFeed(xml) {
   if (!parsed?.rss?.channel) throw new Error('Response is not an RSS feed');
   const items = parsed.rss.channel.item;
   return items ? (Array.isArray(items) ? items : [items]) : [];
+}
+
+// All configured feeds share the school's origin. Keep this lease separate from
+// the running job's lease so collection can pause while the outbox keeps draining.
+const cooldownLease = 'rss-feed-cooldown';
+const cooldownMs = 30 * 60_000;
+
+async function fetchFeed(fetcher, feed, attempt) {
+  const started = Date.now();
+  let response, items, causeCode;
+  let outcome = 'network_error', retryable = false;
+  try {
+    response = await fetcher(feed.url, { signal: AbortSignal.timeout(20_000) });
+    if (!response.ok) {
+      outcome = 'http_error';
+      retryable = (response.status === 408 || (response.status >= 500 && response.status < 600)) &&
+        !response.headers?.has('retry-after');
+    }
+    const body = await response.text();
+    const looksLikeHtml = /^\s*(?:<!doctype html|<(?:html|br|center|head|body)\b)/i.test(body);
+    if (looksLikeHtml && /contrary to the Web firewall security policies have been blocked/i.test(body.slice(0, 4096))) {
+      outcome = 'firewall_block';
+      retryable = false;
+    } else if (response.ok) {
+      outcome = 'invalid_rss';
+      items = parseFeed(body);
+      outcome = 'parsed';
+    }
+  } catch (error) {
+    causeCode = error.cause?.code ?? error.cause?.errors?.[0]?.code ?? error.code;
+    if (outcome === 'network_error') {
+      const timeout = error.name === 'TimeoutError' || error.name === 'AbortError' ||
+        ['ETIMEDOUT', 'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_HEADERS_TIMEOUT', 'UND_ERR_BODY_TIMEOUT'].includes(causeCode);
+      if (timeout) outcome = 'timeout';
+      retryable = timeout || ['ECONNRESET', 'EAI_AGAIN', 'UND_ERR_SOCKET', 'ENETUNREACH', 'ECONNREFUSED'].includes(causeCode) ||
+        (!causeCode && error instanceof TypeError && error.message === 'fetch failed');
+    }
+  }
+  const details = { board: feed.boardId, attempt, outcome, elapsedMs: Date.now() - started,
+    status: response?.status ?? null, contentType: response?.headers?.get('content-type') ?? null,
+    causeCode: causeCode ?? null };
+  if (items) console.log('RSS request', JSON.stringify({ ...details, items: items.length }));
+  else console.error('RSS request', JSON.stringify(details));
+  return { items, retryable };
 }
 
 export async function readAll(db, table, columns, order) {
@@ -122,31 +167,58 @@ export async function syncTopics(db, messaging) {
   return failedBoards;
 }
 
-export async function crawlFeeds(db, fetcher = fetch, feeds = RSS_FEEDS) {
+async function enqueueItems(db, feed, items) {
   let failures = 0;
-  for (const feed of feeds) {
+  for (const item of items) {
     try {
-      const response = await fetcher(feed.url, { signal: AbortSignal.timeout(20_000) });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const items = parseFeed(await response.text());
-      for (const item of items) {
-        try {
-          const link = String(item.link ?? '').trim();
-          const title = String(item.title ?? '').trim();
-          const url = new URL(link);
-          if (!title || !/^https:\/\//i.test(link) || url.origin !== 'https://www.gachon.ac.kr' || link.split('/')[2].includes('@') ||
-              /[\s\\]/.test(link)) throw new Error('Missing title or invalid notice link');
-          const id = check(await db.rpc('enqueue_rss_post', { p_post: {
-            board_id: feed.boardId, title, link,
-            description: String(item.description ?? '').trim(),
-            author: String(item.author || '관리자'), pub_date: parsePubDate(item.pubDate),
-          } }));
-          if (id) console.log(`Queued post ${id} (${feed.boardId})`);
-        } catch (error) { failures++; console.error(`Post error (${feed.boardId}): ${error.message}`); }
-      }
-    } catch (error) { failures++; console.error(`Feed error (${feed.boardId}): ${error.message}`); }
+      const link = String(item.link ?? '').trim();
+      const title = String(item.title ?? '').trim();
+      const url = new URL(link);
+      if (!title || !/^https:\/\//i.test(link) || url.origin !== 'https://www.gachon.ac.kr' || link.split('/')[2].includes('@') ||
+          /[\s\\]/.test(link)) throw new Error('Missing title or invalid notice link');
+      const id = check(await db.rpc('enqueue_rss_post', { p_post: {
+        board_id: feed.boardId, title, link,
+        description: String(item.description ?? '').trim(),
+        author: String(item.author || '관리자'), pub_date: parsePubDate(item.pubDate),
+      } }));
+      if (id) console.log(`Queued post ${id} (${feed.boardId})`);
+    } catch (error) { failures++; console.error(`Post error (${feed.boardId}): ${error.message}`); }
   }
   return failures;
+}
+
+export async function crawlFeeds(db, fetcher = fetch, feeds = RSS_FEEDS) {
+  const cooldown = check(await db.from('crawler_leases').select('expires_at')
+    .eq('name', cooldownLease).maybeSingle());
+  if (cooldown && Date.parse(cooldown.expires_at) > Date.now()) {
+    console.warn(`RSS collection deferred until ${cooldown.expires_at}; parsed 0/${feeds.length} boards`);
+    return null;
+  }
+
+  let parsed = 0, postFailures = 0, retryFeed;
+  async function collect(feed, attempt) {
+    const { items, retryable } = await fetchFeed(fetcher, feed, attempt);
+    if (items) {
+      parsed++;
+      postFailures += await enqueueItems(db, feed, items);
+    } else if (retryable) {
+      retryFeed ??= feed;
+    }
+  }
+
+  for (const feed of feeds) await collect(feed, 1);
+  // Spend one shared retry only after another board proves the host is serving RSS.
+  if (parsed > 0 && retryFeed) {
+    await delay(500);
+    await collect(retryFeed, 2);
+  }
+  console.log(`RSS parsed ${parsed}/${feeds.length} boards; ${postFailures} post errors`);
+  if (feeds.length && parsed === 0) {
+    const expiresAt = new Date(Date.now() + cooldownMs).toISOString();
+    check(await db.from('crawler_leases').upsert({ name: cooldownLease, owner: randomUUID(), expires_at: expiresAt }));
+    console.warn(`All RSS feeds failed; next collection at or after ${expiresAt}`);
+  }
+  return feeds.length - parsed + postFailures;
 }
 
 function notificationData(post, postId) {
@@ -229,8 +301,9 @@ export async function runCrawler(db, messaging) {
   // Do not send to a partially reconciled audience. Pending posts remain durable.
   const failedBoards = await syncTopics(db, messaging);
   const deliveryFailures = await deliverPending(db, messaging, failedBoards);
-  if (failures || failedBoards.size || deliveryFailures) {
-    throw new Error(`${failures} collection, ${[...failedBoards].join(', ') || 'no'} topic sync, ${deliveryFailures} delivery errors`);
+  if (failures !== 0 || failedBoards.size || deliveryFailures) {
+    const collection = failures === null ? 'collection deferred' : `${failures} collection`;
+    throw new Error(`${collection}, ${[...failedBoards].join(', ') || 'no'} topic sync, ${deliveryFailures} delivery errors`);
   }
   console.log('RSS collection, topic sync and delivery complete');
 }
