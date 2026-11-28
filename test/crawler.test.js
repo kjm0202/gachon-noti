@@ -69,11 +69,22 @@ test('existing/pinned item does not hide later new items; one bad item does not 
   assert.deepEqual(links, ['https://www.gachon.ac.kr/old', 'https://www.gachon.ac.kr/new']);
 });
 
-test('HTTP failures are counted and later feeds are still processed', async () => {
+test('transient HTTP failures are retried and later feeds are still processed', async () => {
   let calls = 0;
   assert.equal(await crawlFeeds({}, async () => {
     calls++; return { ok: false, status: 503 };
   }, [{ boardId: 'bachelor' }, { boardId: 'job' }]), 2);
+  assert.equal(calls, 6);
+});
+
+test('network fetch errors are retried before counting a feed failure', async () => {
+  let calls = 0;
+  const xml = '<rss><channel><title>Empty</title></channel></rss>';
+  assert.equal(await crawlFeeds({}, async () => {
+    calls++;
+    if (calls === 1) throw new TypeError('fetch failed');
+    return { ok: true, text: async () => xml };
+  }, [{ boardId: 'bachelor', url: 'test' }]), 0);
   assert.equal(calls, 2);
 });
 

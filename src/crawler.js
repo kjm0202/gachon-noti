@@ -40,6 +40,22 @@ export function parseFeed(xml) {
   return items ? (Array.isArray(items) ? items : [items]) : [];
 }
 
+async function fetchFeed(fetcher, url) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const response = await fetcher(url, { signal: AbortSignal.timeout(20_000) });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.text();
+    } catch (error) {
+      const retryable = error.name === 'AbortError' || error.name === 'TimeoutError' ||
+        (error instanceof TypeError && error.message === 'fetch failed') ||
+        /^HTTP (?:408|429|5\d\d)$/.test(error.message);
+      if (!retryable || attempt === 2) throw error;
+      await delay(250 * 2 ** attempt);
+    }
+  }
+}
+
 export async function readAll(db, table, columns, order) {
   const rows = [];
   for (let offset = 0; ; offset += 500) {
@@ -126,9 +142,7 @@ export async function crawlFeeds(db, fetcher = fetch, feeds = RSS_FEEDS) {
   let failures = 0;
   for (const feed of feeds) {
     try {
-      const response = await fetcher(feed.url, { signal: AbortSignal.timeout(20_000) });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const items = parseFeed(await response.text());
+      const items = parseFeed(await fetchFeed(fetcher, feed.url));
       for (const item of items) {
         try {
           const link = String(item.link ?? '').trim();
